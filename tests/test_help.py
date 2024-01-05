@@ -6,8 +6,6 @@
 
 from click.testing import CliRunner
 
-import tidevice3.cli.list as _
-import tidevice3.cli.developer as _
 from tidevice3.cli.cli_common import cli
 
 runner = CliRunner()

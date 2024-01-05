@@ -22,6 +22,9 @@ $ t3 list
 
 $ t3 developer
 # enable developer mode and mount develoepr image
+
+$ t3 --help
+# show help
 ```
 
 # LICENSE

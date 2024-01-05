@@ -8,8 +8,6 @@ import sys
 
 import click
 
-import tidevice3.cli.list as _
-import tidevice3.cli.developer as _
 from tidevice3.cli.cli_common import cli
 
 logger = logging.getLogger(__name__)

@@ -6,8 +6,7 @@
 import logging
 from tidevice3.cli.cli_common import cli, gcfg
 from pymobiledevice3.services.amfi import AmfiService
-from pymobiledevice3.services.mobile_image_mounter import DeveloperDiskImageMounter, MobileImageMounterService, \
-    PersonalizedImageMounter, auto_mount
+from pymobiledevice3.services.mobile_image_mounter import auto_mount
 from pymobiledevice3.exceptions import AlreadyMountedError
 
 logger = logging.getLogger(__name__)

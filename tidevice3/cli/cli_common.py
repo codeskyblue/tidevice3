@@ -41,3 +41,7 @@ def cli(udid: str, usbmux_address: str, color: bool):
     gcfg.usbmux_address = usbmux_address
     gcfg.color = color
     
+
+import tidevice3.cli.list as _
+import tidevice3.cli.developer as _
+import tidevice3.cli.uninstall as _
