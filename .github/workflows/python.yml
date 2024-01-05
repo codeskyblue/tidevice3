@@ -1,0 +1,60 @@
+name: Python Package
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - v*
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+      
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install
+      
+    - name: Run tests with coverage
+      run: |
+        poetry run pytest --cov=. --cov-report xml --cov-report term
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test # 声明依赖于先前的测试作业
+    if: startsWith(github.ref, 'refs/tags/') # 仅在标签推送时运行
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+    
+    - name: Build
+      run: |
+        poetry self add "poetry-dynamic-versioning[plugin]"
+        rm -fr dist/ && poetry build
+
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_TOKEN }}
