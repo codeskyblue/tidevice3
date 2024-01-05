@@ -6,18 +6,15 @@
 
 from click.testing import CliRunner
 
-from tidevice3.cli.cli_common import cli
+from tidevice3.cli.cli_common import cli, CLI_GROUPS
 
 runner = CliRunner()
 
-def test_cli():
+def test_cli_help():
     result = runner.invoke(cli, ['--help'])
     assert result.exit_code == 0, result.output
-
-def test_list():
-    result = runner.invoke(cli, ['list', '--help'])
-    assert result.exit_code == 0, result.output
-
-def test_developer():
-    result = runner.invoke(cli, ['developer', '--help'])
-    assert result.exit_code == 0, result.output
+    
+    for subcommand in CLI_GROUPS:
+        result = runner.invoke(cli, [subcommand, '--help'])
+        assert result.exit_code == 0, result.output
+        

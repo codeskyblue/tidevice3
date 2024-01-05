@@ -15,6 +15,7 @@ click = "^8.1.7"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
 pytest-cov = "^4.1.0"
+pytest-httpserver = "^1.0.8"
 
 [tool.poetry.scripts]
 t3 = "tidevice3.__main__:main"
