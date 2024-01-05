@@ -1,4 +1,7 @@
 # tidevice3
+[![PyPI version](https://badge.fury.io/py/tidevice3.svg)](https://badge.fury.io/py/tidevice3)
+[![codecov](https://codecov.io/gh/codeskyblue/tidevice3/graph/badge.svg?token=twFRe9igek)](https://codecov.io/gh/codeskyblue/tidevice3)
+
 wrapper for pymobiledevice3 to make it more easy to use.
 
 
