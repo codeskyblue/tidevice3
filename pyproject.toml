@@ -54,5 +54,6 @@ exclude_also = [
 ignore_errors = true
 omit = [
     "tests/*",
-    "docs/*"
+    "docs/*",
+    "__main__.py",
 ]

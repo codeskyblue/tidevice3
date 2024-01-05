@@ -10,7 +10,7 @@ import pathlib
 import pytest
 from pytest_httpserver import HTTPServer
 from tidevice3.exceptions import DownloadError
-from tidevice3.utils.download import CACHE_DOWNLOAD_SUFFIX, download_file, download_file_from_range
+from tidevice3.utils.download import CACHE_DOWNLOAD_SUFFIX, download_file, guess_filename_from_url
 
 
 def test_download_file(httpserver: HTTPServer, tmp_path: pathlib.Path):
@@ -22,6 +22,9 @@ def test_download_file(httpserver: HTTPServer, tmp_path: pathlib.Path):
     httpserver.expect_oneshot_request("/hello").respond_with_data("hello12345")
     download_file(url, filepath)
     assert filepath.read_text() == 'hello12345'
+
+    with pytest.raises(DownloadError):
+        download_file("ftp://123.txt", filepath)
 
 
 def test_download_file_with_range(httpserver: HTTPServer, tmp_path: pathlib.Path):
@@ -61,4 +64,16 @@ def test_download_with_md5(httpserver: HTTPServer, tmp_path: pathlib.Path):
     # md5 not match, should raise error
     with pytest.raises(DownloadError):
         download_file(url, filepath)
+
+    httpserver.expect_request("/test3") \
+        .respond_with_data("333", 
+                           headers={"Accept-Ranges": "bytes",
+                                    "Content-Md5": "xxxx1122<>??"})
+    url = httpserver.url_for("/test3")
+    download_file(url, filepath)
+    assert filepath.read_text() == '333'
+
+
+def test_download_guess_filename():
+    assert guess_filename_from_url("http://example.com/b/test.txt?foo=1") == "test.txt"
     

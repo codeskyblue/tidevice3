@@ -25,7 +25,7 @@ from tidevice3.exceptions import DownloadError
 
 logger = logging.getLogger(__name__)
 
-CACHE_DOWNLOAD_SUFFIX = ".download-tmp-requests"
+CACHE_DOWNLOAD_SUFFIX = ".t3-download-cache"
 DEFAULT_DOWNLOAD_TIMEOUT = 600  # 10 minutes
 
 StrOrPathLike = Union[str, pathlib.Path]
@@ -36,7 +36,7 @@ def md5sum(filepath: StrOrPathLike) -> str:
     m = hashlib.md5()
     with open(filepath, "rb") as f:
         while True:
-            data = f.read(1024 * 1024)
+            data = f.read(1<<20)
             if not data:
                 break
             m.update(data)
@@ -59,7 +59,9 @@ def get_remote_file_info(headers: CaseInsensitiveDict) -> RemoteFileInfo:
     md5_base64 = headers.get("content-md5")
     if md5_base64:
         try:
-            info.content_md5 = base64.b64decode(md5_base64).hex()
+            content_md5 = base64.b64decode(md5_base64).hex()
+            if len(content_md5) == 32:
+                info.content_md5 = content_md5
         except:
             pass
     return info
@@ -120,7 +122,7 @@ def is_hyperlink(url: str) -> bool:
     return url.startswith("http://") or url.startswith("https://")
 
 
-def guess_filename_from_url(url: str, headers: CaseInsensitiveDict) -> str:
+def guess_filename_from_url(url: str, headers: CaseInsensitiveDict = {}) -> str:
     """
     Guess filename from url and headers
     """
