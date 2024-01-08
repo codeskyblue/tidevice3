@@ -20,11 +20,24 @@ pipx install tidevice3
 $ t3 list
 ...
 
-$ t3 developer
 # enable developer mode and mount develoepr image
+$ t3 developer
 
-$ t3 --help
+# install & uninstall
+$ t3 install https://....ipa
+$ t3 install ./some.ipa
+$ t3 uninstall com.example
+
+# start tunneld for iOS>=17
+# launch process (pmd3 remote start-tunnel) when new usb device connected
+# root required
+$ sudo t3 tunneld
+
+# take screenshot
+$ t3 screenshot out.png
+
 # show help
+$ t3 --help
 ```
 
 # DEVELOP & CONTRIBUTE
