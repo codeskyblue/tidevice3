@@ -10,7 +10,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.8"
 pymobiledevice3 = "^2.36.2"
-click = "^8.1.7"
+click = "*"
+pydantic = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

@@ -27,5 +27,8 @@ $ t3 --help
 # show help
 ```
 
+# DEVELOP & CONTRIBUTE
+see [DEVELOP.md](DEVELOP.md)
+
 # LICENSE
 [MIT](LICENSE)
