@@ -37,9 +37,10 @@ def get_connected_devices() -> list[str]:
 
 
 def guess_pymobiledevice3_path() -> str:
-    if shutil.which("pymobiledevice3"):
-        return "pymobiledevice3"
-    return ".venv/bin/pymobiledevice3"
+    pmd3path = shutil.which("pymobiledevice3")
+    if not pmd3path:
+        pmd3path = sys.executable + " -m pymobiledevice3"
+    return pmd3path
 
 
 def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
@@ -51,7 +52,7 @@ def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
     log_prefix = f"[{udid}]"
-    cmd = f" {pmd3_path} remote start-tunnel --script-mode --udid {udid}"
+    cmd = f"{pmd3_path} remote start-tunnel --script-mode --udid {udid}"
     logger.info("%s cmd: %s", log_prefix, cmd)
     process = subprocess.Popen(
         shlex.split(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
@@ -113,7 +114,6 @@ class DeviceManager:
          while True:
             try:
                 process.wait(1.0)
-                self.active_monitors[udid] = None
                 self.addresses.pop(udid, None)
                 logger.warning("udid: %s process exit with code: %s", udid, process.returncode)
                 break
