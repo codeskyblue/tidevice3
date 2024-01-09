@@ -45,6 +45,9 @@ def guess_pymobiledevice3_path() -> str:
 def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     Start program, should be killed when the main program quit
+
+    Raises:
+        OSError
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
     log_prefix = f"[{udid}]"
@@ -54,6 +57,8 @@ def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
         shlex.split(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
     )
     output_str = process.stdout.readline().decode("utf-8").strip()
+    if output_str == "":
+        raise OSError("start-tunnel failed")
     address, port_str = output_str.split()
     port = int(port_str)
     logger.info("%s tunnel address: %s", log_prefix, [address, port])
@@ -74,13 +79,14 @@ class DeviceManager:
 
         # Start monitors for new devices
         for udid in current_devices - active_udids:
+            self.active_monitors[udid] = None
             try:
-                addr, process = start_tunnel(self.pmd3_path, udid)
-                self.active_monitors[udid] = process
-                self.addresses[udid] = addr
+                threading.Thread(name=f"{udid} keeper",
+                                 target=self._start_tunnel_keeper,
+                                 args=(udid,),
+                                 daemon=True).start()
             except Exception as e:
                 logger.error("udid: %s start-tunnel failed: %s", udid, e)
-                self.active_monitors[udid] = None
 
         # Stop monitors for disconnected devices
         for udid in active_udids - current_devices:
@@ -90,6 +96,29 @@ class DeviceManager:
                 process.terminate()
             self.active_monitors.pop(udid, None)
             self.addresses.pop(udid, None)
+
+    def _start_tunnel_keeper(self, udid: str):
+        while udid in self.active_monitors:
+            try:
+                addr, process = start_tunnel(self.pmd3_path, udid)
+                self.active_monitors[udid] = process
+                self.addresses[udid] = addr
+            except OSError:
+                logger.exception("udid: %s start-tunnel failed", udid)
+                break
+            self._wait_process_exit(process, udid)
+            time.sleep(3)
+    
+    def _wait_process_exit(self, process: subprocess.Popen, udid: str):
+         while True:
+            try:
+                process.wait(1.0)
+                self.active_monitors[udid] = None
+                self.addresses.pop(udid, None)
+                logger.warning("udid: %s process exit with code: %s", udid, process.returncode)
+                break
+            except subprocess.TimeoutExpired:
+                continue
 
     def shutdown(self):
         logger.info("terminate all processes")
