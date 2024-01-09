@@ -36,6 +36,12 @@ $ sudo t3 tunneld
 # take screenshot
 $ t3 screenshot out.png
 
+# reboot
+$ t3 reboot
+
+# file operation
+$ t3 fsync <ls|rm|pull|push> [Arguments...]
+
 # show help
 $ t3 --help
 ```

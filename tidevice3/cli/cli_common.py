@@ -52,6 +52,6 @@ def cli(udid: str, usbmux_address: str, color: bool):
     gcfg.color = color
 
 
-CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "tunneld"]
+CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "reboot", "tunneld"]
 for group in CLI_GROUPS:
     __import__(f"tidevice3.cli.{group}")
