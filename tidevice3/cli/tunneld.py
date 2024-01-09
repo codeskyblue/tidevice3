@@ -21,6 +21,7 @@ from packaging.version import Version
 
 from tidevice3.cli.cli_common import cli
 from tidevice3.cli.list import list_devices
+from tidevice3.utils.common import threadsafe_function
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ def guess_pymobiledevice3_path() -> str:
     return pmd3path
 
 
+@threadsafe_function
 def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     Start program, should be killed when the main program quit
