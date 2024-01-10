@@ -4,10 +4,13 @@
 """Created on Fri Jan 05 2024 18:10:01 by codeskyblue
 """
 import logging
-from tidevice3.cli.cli_common import cli, gcfg
+
+from packaging.version import Version
+from pymobiledevice3.exceptions import AlreadyMountedError
 from pymobiledevice3.services.amfi import AmfiService
 from pymobiledevice3.services.mobile_image_mounter import auto_mount
-from pymobiledevice3.exceptions import AlreadyMountedError
+
+from tidevice3.cli.cli_common import cli, gcfg
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +19,13 @@ logger = logging.getLogger(__name__)
 def developer():
     """ enable developer mode """
     service_provider = gcfg.get_lockdown_client()
-    if not service_provider.developer_mode_status:
-        logger.info('enable developer mode')
-        AmfiService(service_provider).enable_developer_mode()
-    else:
-        logger.info('developer mode already enabled')
+    
+    if Version(service_provider.product_version) >= Version("17"):
+        if not service_provider.developer_mode_status:
+            logger.info('enable developer mode')
+            AmfiService(service_provider).enable_developer_mode()
+        else:
+            logger.info('developer mode already enabled')
     
     try:
         auto_mount(service_provider)

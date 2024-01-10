@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import unicodedata
 from typing import Optional
 
 import click
@@ -14,6 +15,21 @@ from pymobiledevice3.cli.cli_common import print_json
 from pymobiledevice3.lockdown import create_using_usbmux, usbmux
 
 from tidevice3.cli.cli_common import cli, gcfg
+
+
+def display_length(s: str):
+    length = 0
+    for char in s:
+        if unicodedata.east_asian_width(char) in ('F', 'W'):
+            length += 2
+        else:
+            length += 1
+    return length
+
+
+def ljust(s, length: int):
+    s = str(s)
+    return s + ' ' * (length - display_length(s))
 
 
 def print_dict_as_table(infos: list[DeviceShortInfo]):
@@ -26,19 +42,19 @@ def print_dict_as_table(infos: list[DeviceShortInfo]):
     headers = ["Identifier", "DeviceName", "ProductType", "ProductVersion", "ConnectionType"]
     header_lens = []
     for header in headers:
-        max_len = max([len(str(getattr(info, header))) for info in infos])
+        max_len = max([display_length(str(getattr(info, header))) for info in infos])
         header_lens.append(max(max_len, len(header)))
     rows = []
     # print header
-    sep = " "
+    sep = "  "
     for header, header_len in zip(headers, header_lens):
-        rows.append(header.ljust(header_len))
+        rows.append(ljust(header, header_len))
     print(sep.join(rows))
     # print rows
     for info in infos:
         rows = []
         for header, header_len in zip(headers, header_lens):
-            rows.append(str(getattr(info, header)).ljust(header_len))
+            rows.append(ljust(getattr(info, header), header_len))
         print(sep.join(rows))
         
 

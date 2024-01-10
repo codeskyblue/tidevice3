@@ -9,6 +9,8 @@ import sys
 import click
 
 from tidevice3.cli.cli_common import cli
+from tidevice3.exceptions import BaseException
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +18,12 @@ logger = logging.getLogger(__name__)
 def main():
     try:
         cli(auto_envvar_prefix='TIDEVICE3')
-    except Exception as e:
+    except BaseException as e:
         click.echo(f"Error: {type(e)} {e}")
         sys.exit(1)
+    except Exception as e:
+        logger.exception("unhandled exception", e)
+        sys.exit(2)
 
 
 if __name__ == '__main__':
