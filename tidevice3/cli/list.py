@@ -16,13 +16,43 @@ from pymobiledevice3.lockdown import create_using_usbmux, usbmux
 from tidevice3.cli.cli_common import cli, gcfg
 
 
+def print_dict_as_table(infos: list[DeviceShortInfo]):
+    """
+    Output as format
+    ----------------------------------------
+    Identifier                DeviceName ProductType ProductVersion ConnectionType
+    00000000-1234567890123456 MIMM       iPhone13,3  17.2           USB
+    """
+    headers = ["Identifier", "DeviceName", "ProductType", "ProductVersion", "ConnectionType"]
+    header_lens = []
+    for header in headers:
+        max_len = max([len(str(getattr(info, header))) for info in infos])
+        header_lens.append(max(max_len, len(header)))
+    rows = []
+    # print header
+    sep = " "
+    for header, header_len in zip(headers, header_lens):
+        rows.append(header.ljust(header_len))
+    print(sep.join(rows))
+    # print rows
+    for info in infos:
+        rows = []
+        for header, header_len in zip(headers, header_lens):
+            rows.append(str(getattr(info, header)).ljust(header_len))
+        print(sep.join(rows))
+        
+
 @cli.command(name="list")
 @click.option("-u", "--usb", is_flag=True, help="show only usb devices")
 @click.option("-n", "--network", is_flag=True, help="show only network devices")
-def cli_list(usb: bool, network: bool):
+@click.option("--json", is_flag=True, help="output as json format")
+def cli_list(usb: bool, network: bool, json: bool):
     """list connected devices"""
     devices = list_devices(usb, network, gcfg.usbmux_address)
-    print_json([d.model_dump() for d in devices], colored=gcfg.color)
+    if json:
+        print_json([d.model_dump() for d in devices], colored=gcfg.color)
+    else:
+        print_dict_as_table(devices)
 
 
 class DeviceShortInfo(BaseModel):

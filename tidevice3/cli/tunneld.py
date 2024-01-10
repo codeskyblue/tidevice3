@@ -22,6 +22,7 @@ from packaging.version import Version
 from tidevice3.cli.cli_common import cli
 from tidevice3.cli.list import list_devices
 from tidevice3.utils.common import threadsafe_function
+from pymobiledevice3.exceptions import MuxException
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,11 @@ class Address(NamedTuple):
 
 def get_connected_devices() -> list[str]:
     """return list of udid"""
-    devices = list_devices(usb=True, network=False)
+    try:
+        devices = list_devices(usb=True, network=False)
+    except MuxException as e:
+        logger.error("list_devices failed: %s", e)
+        return []
     return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17")]
 
 
@@ -44,13 +49,17 @@ def guess_pymobiledevice3_path() -> str:
     return pmd3path
 
 
+class TunnelError(Exception):
+    pass
+
+
 @threadsafe_function
 def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     Start program, should be killed when the main program quit
 
     Raises:
-        OSError
+        TunnelError
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
     log_prefix = f"[{udid}]"
@@ -61,7 +70,7 @@ def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     )
     output_str = process.stdout.readline().decode("utf-8").strip()
     if output_str == "":
-        raise OSError("start-tunnel failed")
+        raise TunnelError("pmd3 start-tunnel empty response")
     address, port_str = output_str.split()
     port = int(port_str)
     logger.info("%s tunnel address: %s", log_prefix, [address, port])
@@ -106,10 +115,9 @@ class DeviceManager:
                 addr, process = start_tunnel(self.pmd3_path, udid)
                 self.active_monitors[udid] = process
                 self.addresses[udid] = addr
-            except OSError:
+                self._wait_process_exit(process, udid)
+            except TunnelError:
                 logger.exception("udid: %s start-tunnel failed", udid)
-                break
-            self._wait_process_exit(process, udid)
             time.sleep(3)
     
     def _wait_process_exit(self, process: subprocess.Popen, udid: str):
