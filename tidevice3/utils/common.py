@@ -54,8 +54,11 @@ def print_dict_as_table(dict_values: list[dict], headers: list[str], sep: str = 
     """
     header_lens = []
     for header in headers:
-        max_len = max([display_length(str(item.get(header, "-"))) for item in dict_values])
-        header_lens.append(max(max_len, len(header)))
+        if dict_values:
+            max_len = max([display_length(str(item.get(header, "-"))) for item in dict_values])
+        else:
+            max_len = 0
+        header_lens.append(max(max_len, display_length(header)))
     rows = []
     # print header
     for header, header_len in zip(headers, header_lens):

@@ -34,18 +34,21 @@ def test_threadsafe_function():
 
 
 def test_print_dict_as_table(capsys: pytest.CaptureFixture[str]):
-    print_dict_as_table([{"a": 123, "bb": "2"}], headers=["a", "bb"], sep="-")
     # expect output:
     # a   bb
     # 123 2
-    # Use capsys to capture stdout
+    print_dict_as_table([{"a": 123, "bb": "2"}, {"a": 1}], headers=["a", "bb"], sep="-")
     captured = capsys.readouterr()
-
-    # Define the expected output
     expected_output = "".join([
         "a  -bb\n",
         "123-2\n",
+        "1  -\n"
     ])
-
-    # Assert that the actual output matches the expected output
     assert captured.out == expected_output
+    
+    # expect output:
+    # a bb
+    print_dict_as_table([], headers=["a", "bb"], sep="-")
+    captured = capsys.readouterr()
+    assert captured.out == "a-bb\n"
+
