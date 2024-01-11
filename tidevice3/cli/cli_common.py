@@ -30,8 +30,8 @@ class GlobalConfig:
     def _update_property(self):
         """ should be called after property changed is set """
         with self.get_lockdown_client() as lockdown_client:
-            self.product_version = lockdown_client.product_version
-            self.udid = lockdown_client.udid
+            self._product_version = lockdown_client.product_version
+            self._udid = lockdown_client.udid
     
     @property
     def udid(self) -> str:
@@ -52,7 +52,7 @@ class GlobalConfig:
         return int(self.product_version.split(".")[0])
     
     def get_lockdown_client(self) -> LockdownClient:
-        return create_using_usbmux(serial=self.udid, usbmux_address=self.usbmux_address)
+        return create_using_usbmux(serial=self._udid, usbmux_address=self.usbmux_address)
     
     def get_service_provider(self) -> LockdownServiceProvider:
         if self.major_version >= 17:
