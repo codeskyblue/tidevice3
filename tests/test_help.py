@@ -16,5 +16,5 @@ def test_cli_help():
     
     for subcommand in CLI_GROUPS:
         result = runner.invoke(cli, [subcommand, '--help'])
-        assert result.exit_code == 0, result.output
+        assert result.exit_code == 0, (subcommand, result.output)
         

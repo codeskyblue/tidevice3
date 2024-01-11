@@ -22,22 +22,36 @@ DEFAULT_TIMEOUT = 60
 
 @dataclass
 class GlobalConfig:
-    udid: str | None = None
     color: bool = True
     usbmux_address: str | None = None
-    product_version: str | None = field(default=None, init=False)
+    _udid: str | None = None
+    _product_version: str | None = field(default=None, init=False)
 
-    def update_property(self):
+    def _update_property(self):
         """ should be called after property changed is set """
         with self.get_lockdown_client() as lockdown_client:
             self.product_version = lockdown_client.product_version
             self.udid = lockdown_client.udid
+    
+    @property
+    def udid(self) -> str:
+        if self._udid:
+            return self._udid
+        self._update_property()
+        return self._udid
+    
+    @property
+    def product_version(self) -> str:
+        if self._product_version:
+            return self._product_version
+        self._update_property()
+        return self._product_version
 
     @property
     def major_version(self) -> int:
         return int(self.product_version.split(".")[0])
     
-    def get_lockdown_client(self) -> LockdownServiceProvider:
+    def get_lockdown_client(self) -> LockdownClient:
         return create_using_usbmux(serial=self.udid, usbmux_address=self.usbmux_address)
     
     def get_service_provider(self) -> LockdownServiceProvider:
@@ -85,10 +99,9 @@ class OrderedGroup(click.Group):
 @click.option("usbmux_address", "--usbmux", help=USBMUX_OPTION_HELP)
 @click.option("--color/--no-color", default=True)
 def cli(udid: str, usbmux_address: str, color: bool):
-    gcfg.udid = udid
+    gcfg._udid = udid
     gcfg.usbmux_address = usbmux_address
     gcfg.color = color
-    gcfg.update_property()
     
 
 CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "app", "reboot", "tunneld"]
