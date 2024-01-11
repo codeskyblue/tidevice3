@@ -7,20 +7,58 @@ from __future__ import annotations
 import collections
 
 import click
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pymobiledevice3.cli.cli_common import USBMUX_OPTION_HELP
 from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.lockdown import create_using_usbmux
+from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscoveryService
+from pymobiledevice3.lockdown_service_provider import LockdownServiceProvider
+import requests
 
+from tidevice3.exceptions import FatalError
+
+
+DEFAULT_TIMEOUT = 60
 
 @dataclass
 class GlobalConfig:
     udid: str | None = None
     color: bool = True
     usbmux_address: str | None = None
+    product_version: str | None = field(default=None, init=False)
 
-    def get_lockdown_client(self) -> LockdownClient:
+    def update_property(self):
+        """ should be called after property changed is set """
+        with self.get_lockdown_client() as lockdown_client:
+            self.product_version = lockdown_client.product_version
+            self.udid = lockdown_client.udid
+
+    @property
+    def major_version(self) -> int:
+        return int(self.product_version.split(".")[0])
+    
+    def get_lockdown_client(self) -> LockdownServiceProvider:
         return create_using_usbmux(serial=self.udid, usbmux_address=self.usbmux_address)
+    
+    def get_service_provider(self) -> LockdownServiceProvider:
+        if self.major_version >= 17:
+            return self._get_remote_service_discovery_service()
+        return self.get_lockdown_client()
+    
+    def _get_remote_service_discovery_service(self) -> RemoteServiceDiscoveryService:
+        try:
+            resp = requests.get("http://localhost:5555", timeout=DEFAULT_TIMEOUT)
+            tunnels = resp.json()
+            ipv6_address = tunnels.get(self.udid)
+            if ipv6_address is None:
+                raise FatalError("tunneld not ready for device", self.udid)
+            rsd = RemoteServiceDiscoveryService(ipv6_address)
+            rsd.connect()
+            return rsd
+        except requests.RequestException:
+            raise FatalError("Please run `sudo t3 tunneld` first")
+        except (TimeoutError, ConnectionError):
+            raise FatalError("RemoteServiceDiscoveryService connect failed")
 
 
 gcfg: GlobalConfig = GlobalConfig()
@@ -42,7 +80,7 @@ class OrderedGroup(click.Group):
         return self.commands
 
 
-@click.group(cls=OrderedGroup)
+@click.group(cls=OrderedGroup, context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option("-u", "--udid", default=None, help="udid of device")
 @click.option("usbmux_address", "--usbmux", help=USBMUX_OPTION_HELP)
 @click.option("--color/--no-color", default=True)
@@ -50,8 +88,9 @@ def cli(udid: str, usbmux_address: str, color: bool):
     gcfg.udid = udid
     gcfg.usbmux_address = usbmux_address
     gcfg.color = color
+    gcfg.update_property()
+    
 
-
-CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "reboot", "tunneld"]
+CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "app", "reboot", "tunneld"]
 for group in CLI_GROUPS:
     __import__(f"tidevice3.cli.{group}")

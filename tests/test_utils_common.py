@@ -1,6 +1,7 @@
 import threading
-import time
-from tidevice3.utils.common import threadsafe_function
+
+import pytest
+from tidevice3.utils.common import threadsafe_function, print_dict_as_table
 
 def test_threadsafe_function():
     # Define a shared variable
@@ -30,3 +31,21 @@ def test_threadsafe_function():
 
     # Check if the shared variable has been incremented correctly
     assert shared_variable == 10000
+
+
+def test_print_dict_as_table(capsys: pytest.CaptureFixture[str]):
+    print_dict_as_table([{"a": 123, "bb": "2"}], headers=["a", "bb"], sep="-")
+    # expect output:
+    # a   bb
+    # 123 2
+    # Use capsys to capture stdout
+    captured = capsys.readouterr()
+
+    # Define the expected output
+    expected_output = "".join([
+        "a  -bb\n",
+        "123-2\n",
+    ])
+
+    # Assert that the actual output matches the expected output
+    assert captured.out == expected_output

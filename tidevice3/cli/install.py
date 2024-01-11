@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @click.argument('path_or_url')
 def install(path_or_url: str):
     """ install given .ipa """
+    logger.warning("deprecated, use `t3 app install` instead")
     if is_hyperlink(path_or_url):
         ipa_path = download_file(path_or_url)
     elif os.path.isfile(path_or_url):

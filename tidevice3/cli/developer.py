@@ -15,8 +15,8 @@ from tidevice3.cli.cli_common import cli, gcfg
 logger = logging.getLogger(__name__)
 
 
-@cli.command()
-def developer():
+@cli.command(name="developer")
+def cli_developer():
     """ enable developer mode """
     service_provider = gcfg.get_lockdown_client()
     

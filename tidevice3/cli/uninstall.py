@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @click.argument('bundle_identifier')
 def uninstall(bundle_identifier: str):
     """ uninstall application """
+    logger.warning("deprecated, use `t3 app uninstall` instead")
     service_provider = gcfg.get_lockdown_client()
     InstallationProxyService(lockdown=service_provider).uninstall(bundle_identifier)
     

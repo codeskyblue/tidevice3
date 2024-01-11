@@ -9,3 +9,6 @@ class BaseException(Exception):
 
 class DownloadError(BaseException):
     pass
+
+class FatalError(BaseException):
+    pass
