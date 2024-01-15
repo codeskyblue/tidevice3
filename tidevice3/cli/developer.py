@@ -9,6 +9,7 @@ from packaging.version import Version
 from pymobiledevice3.exceptions import AlreadyMountedError
 from pymobiledevice3.services.amfi import AmfiService
 from pymobiledevice3.services.mobile_image_mounter import auto_mount
+from pymobiledevice3.common import get_home_folder
 
 from tidevice3.cli.cli_common import cli, gcfg
 
@@ -28,7 +29,9 @@ def cli_developer():
             logger.info('developer mode already enabled')
     
     try:
-        auto_mount(service_provider)
+        xcode = get_home_folder() / 'Xcode.app'
+        xcode.mkdir(parents=True, exist_ok=True)
+        auto_mount(service_provider, xcode=xcode)
         logger.info('mount developer image')
     except AlreadyMountedError:
         logger.info('developer image already mounted')

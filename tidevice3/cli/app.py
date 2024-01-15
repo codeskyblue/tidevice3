@@ -18,6 +18,7 @@ from pymobiledevice3.services.installation_proxy import InstallationProxyService
 from pymobiledevice3.cli.cli_common import print_json
 from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
+from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 
 from tidevice3.cli.cli_common import cli, gcfg
 from tidevice3.utils.common import print_dict_as_table
@@ -106,3 +107,25 @@ def app_launch(arguments: str, kill_existing: bool, suspended: bool, env: tuple,
                     output_received.message.strip()
                 )
 
+
+@app.command("kill")
+@click.argument("pid", type=click.INT)
+def app_kill(pid: int):
+    """kill application"""
+    service_provider = gcfg.get_service_provider()
+    with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
+        process_control = ProcessControl(dvt)
+        process_control.kill(pid)
+
+
+@app.command("ps")
+@click.option('--color/--no-color', default=True)
+def app_ps(color: bool):
+    """list running processes"""
+    service_provider = gcfg.get_service_provider()
+    with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
+        processes = DeviceInfo(dvt).proclist()
+        for process in processes:
+            if 'startDate' in process:
+                process['startDate'] = str(process['startDate'])
+        print_json(processes, colored=color)
