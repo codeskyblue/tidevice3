@@ -12,17 +12,17 @@ import sys
 import threading
 import time
 from typing import Mapping, NamedTuple, Tuple
-import click
 
+import click
 import fastapi
 import uvicorn
 from fastapi import FastAPI
 from packaging.version import Version
+from pymobiledevice3.exceptions import MuxException
 
 from tidevice3.cli.cli_common import cli
 from tidevice3.cli.list import list_devices
 from tidevice3.utils.common import threadsafe_function
-from pymobiledevice3.exceptions import MuxException
 
 logger = logging.getLogger(__name__)
 

@@ -11,8 +11,8 @@ import typing
 import click
 from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
-from pymobiledevice3.services.screenshot import ScreenshotService
 from pymobiledevice3.services.dvt.instruments.screenshot import Screenshot
+from pymobiledevice3.services.screenshot import ScreenshotService
 
 from tidevice3.cli.cli_common import cli, gcfg
 

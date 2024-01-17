@@ -7,8 +7,9 @@
 import logging
 
 import click
-from tidevice3.cli.cli_common import cli, gcfg
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
+
+from tidevice3.cli.cli_common import cli, gcfg
 
 logger = logging.getLogger(__name__)
 

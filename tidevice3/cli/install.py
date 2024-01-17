@@ -8,8 +8,7 @@ import logging
 import os
 
 import click
-from pymobiledevice3.services.installation_proxy import \
-    InstallationProxyService
+from pymobiledevice3.services.installation_proxy import InstallationProxyService
 
 from tidevice3.cli.cli_common import cli, gcfg
 from tidevice3.utils.download import download_file, is_hyperlink

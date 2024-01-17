@@ -4,19 +4,18 @@
 """Created on Fri Jan 05 2024 18:10:32 by codeskyblue
 """
 from __future__ import annotations
+
 import collections
+from dataclasses import dataclass, field
 
 import click
-from dataclasses import dataclass, field
-from pymobiledevice3.cli.cli_common import USBMUX_OPTION_HELP
-from pymobiledevice3.lockdown import LockdownClient
-from pymobiledevice3.lockdown import create_using_usbmux
-from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscoveryService
-from pymobiledevice3.lockdown_service_provider import LockdownServiceProvider
 import requests
+from pymobiledevice3.cli.cli_common import USBMUX_OPTION_HELP
+from pymobiledevice3.lockdown import LockdownClient, create_using_usbmux
+from pymobiledevice3.lockdown_service_provider import LockdownServiceProvider
+from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscoveryService
 
 from tidevice3.exceptions import FatalError
-
 
 DEFAULT_TIMEOUT = 60
 

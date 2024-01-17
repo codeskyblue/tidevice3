@@ -1,7 +1,9 @@
 import threading
 
 import pytest
-from tidevice3.utils.common import threadsafe_function, print_dict_as_table
+
+from tidevice3.utils.common import print_dict_as_table, threadsafe_function
+
 
 def test_threadsafe_function():
     # Define a shared variable

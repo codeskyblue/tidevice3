@@ -7,8 +7,10 @@
 import base64
 import hashlib
 import pathlib
+
 import pytest
 from pytest_httpserver import HTTPServer
+
 from tidevice3.exceptions import DownloadError
 from tidevice3.utils.download import CACHE_DOWNLOAD_SUFFIX, download_file, guess_filename_from_url
 

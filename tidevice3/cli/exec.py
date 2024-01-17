@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import os
 import sys
+
 import click
+
 from tidevice3.cli.cli_common import cli, gcfg
 
 

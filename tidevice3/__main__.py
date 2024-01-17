@@ -7,10 +7,10 @@ import logging
 import sys
 
 import click
+from pymobiledevice3.exceptions import NoDeviceConnectedError
 
 from tidevice3.cli.cli_common import cli
-from tidevice3.exceptions import BaseException
-from pymobiledevice3.exceptions import NoDeviceConnectedError
+from tidevice3.exceptions import BaseException, FatalError
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +18,17 @@ logger = logging.getLogger(__name__)
 def main():
     try:
         cli(auto_envvar_prefix='TIDEVICE3')
-    except BaseException as e:
-        click.echo(f"Error: {type(e)} {e}")
+    except FatalError as e:
+        click.echo(f"Error: {e}")
         sys.exit(1)
     except NoDeviceConnectedError:
         logger.error("No device connected")
         sys.exit(1)
+    except BaseException as e:
+        click.echo(f"Error: {type(e)} {e}")
+        sys.exit(1)
     except Exception as e:
-        logger.exception("unhandled exception", e)
+        logger.exception("unhandled exception: %s", e)
         sys.exit(2)
 
 

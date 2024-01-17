@@ -6,7 +6,7 @@
 
 from click.testing import CliRunner
 
-from tidevice3.cli.cli_common import cli, CLI_GROUPS
+from tidevice3.cli.cli_common import CLI_GROUPS, cli
 
 runner = CliRunner()
 

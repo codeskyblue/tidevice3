@@ -6,10 +6,10 @@
 import logging
 
 from packaging.version import Version
+from pymobiledevice3.common import get_home_folder
 from pymobiledevice3.exceptions import AlreadyMountedError
 from pymobiledevice3.services.amfi import AmfiService
 from pymobiledevice3.services.mobile_image_mounter import auto_mount
-from pymobiledevice3.common import get_home_folder
 
 from tidevice3.cli.cli_common import cli, gcfg
 

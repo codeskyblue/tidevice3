@@ -13,12 +13,12 @@ import shlex
 
 import click
 from pydantic import BaseModel
-from pymobiledevice3.services.afc import AfcService
-from pymobiledevice3.services.installation_proxy import InstallationProxyService
 from pymobiledevice3.cli.cli_common import print_json
-from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
+from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
 from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
+from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
+from pymobiledevice3.services.installation_proxy import InstallationProxyService
 
 from tidevice3.cli.cli_common import cli, gcfg
 from tidevice3.utils.common import print_dict_as_table
@@ -46,8 +46,8 @@ def app_install(path_or_url: str):
 
 
 @app.command("list")
-@click.option("-u", "--user", is_flag=True, help="include user apps")
 @click.option("-s", "--system", is_flag=True, help="include system apps")
+@click.option("--user/--no-user", default=True, is_flag=True, help="include user apps")
 @click.option("--hidden", is_flag=True, help="include hidden apps")
 @click.option("--calculate-sizes/--no-calculate-size", default=False)
 def app_list(user: bool, system: bool, hidden: bool, calculate_sizes: bool):
