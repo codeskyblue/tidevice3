@@ -15,17 +15,19 @@ from typing import List
 import click
 from pydantic import BaseModel
 from pymobiledevice3.exceptions import AfcException, AfcFileNotFoundError
+from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.afc import AfcService
 from pymobiledevice3.services.house_arrest import HouseArrestService
 
-from tidevice3.cli.cli_common import cli, gcfg
+from tidevice3.cli.cli_common import cli, pass_service_provider
 from tidevice3.exceptions import FatalError
 
 
 def pass_afc(func):
+    @pass_service_provider
     @click.pass_context
-    def new_func(ctx, *args, **kwargs):
-        service_provider= gcfg.get_lockdown_client()
+    def new_func(ctx: click.Context, service_provider: LockdownClient, *args, **kwargs):
+        print(ctx, service_provider)
         if ctx.obj['bundle_id']:
             afc = HouseArrestService(lockdown=service_provider,
                                      bundle_id=ctx.obj['bundle_id'],

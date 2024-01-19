@@ -6,18 +6,15 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
-import click
-from pydantic import BaseModel
+from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 
-from tidevice3.cli.cli_common import cli, gcfg
+from tidevice3.cli.cli_common import cli, pass_service_provider
 
 
 @cli.command()
-def reboot():
+@pass_service_provider
+def reboot(service_provider: LockdownClient):
     """reboot device"""
-    lockdown_client = gcfg.get_lockdown_client()
-    with DiagnosticsService(lockdown_client) as diagnostics:
+    with DiagnosticsService(service_provider) as diagnostics:
         diagnostics.restart()

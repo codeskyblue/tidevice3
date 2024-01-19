@@ -7,18 +7,19 @@
 import logging
 
 import click
+from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
 
-from tidevice3.cli.cli_common import cli, gcfg
+from tidevice3.cli.cli_common import cli, pass_service_provider
 
 logger = logging.getLogger(__name__)
 
 
 @cli.command()
 @click.argument('bundle_identifier')
-def uninstall(bundle_identifier: str):
+@pass_service_provider
+def uninstall(service_provider: LockdownClient, bundle_identifier: str):
     """ uninstall application """
     logger.warning("deprecated, use `t3 app uninstall` instead")
-    service_provider = gcfg.get_lockdown_client()
     InstallationProxyService(lockdown=service_provider).uninstall(bundle_identifier)
     

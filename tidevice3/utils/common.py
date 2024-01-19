@@ -30,7 +30,8 @@ def threadsafe_function(fn):
     return wrapper
 
 
-def display_length(s: str):
+def unicode_len(s: str) -> int:
+    """ printable length of string """
     length = 0
     for char in s:
         if unicodedata.east_asian_width(char) in ('F', 'W'):
@@ -42,7 +43,7 @@ def display_length(s: str):
 
 def ljust(s, length: int):
     s = str(s)
-    return s + ' ' * (length - display_length(s))
+    return s + ' ' * (length - unicode_len(s))
 
 
 def print_dict_as_table(dict_values: list[dict], headers: list[str], sep: str = " "):
@@ -52,22 +53,22 @@ def print_dict_as_table(dict_values: list[dict], headers: list[str], sep: str = 
     Identifier                DeviceName ProductType ProductVersion ConnectionType
     00000000-1234567890123456 MIMM       iPhone13,3  17.2           USB
     """
-    header_lens = []
+    header_with_lengths = []
     for header in headers:
         if dict_values:
-            max_len = max([display_length(str(item.get(header, "-"))) for item in dict_values])
+            max_len = max([unicode_len(str(item.get(header, ""))) for item in dict_values])
         else:
             max_len = 0
-        header_lens.append(max(max_len, display_length(header)))
+        header_with_lengths.append((header, max(max_len, unicode_len(header))))
     rows = []
     # print header
-    for header, header_len in zip(headers, header_lens):
-        rows.append(ljust(header, header_len))
+    for header, _len in header_with_lengths:
+        rows.append(ljust(header, _len))
     print(sep.join(rows).rstrip())
     # print rows
     for item in dict_values:
         rows = []
-        for header, header_len in zip(headers, header_lens):
-            rows.append(ljust(item.get(header, ""), header_len))
+        for header, _len in header_with_lengths:
+            rows.append(ljust(item.get(header, ""), _len))
         print(sep.join(rows).rstrip())
         

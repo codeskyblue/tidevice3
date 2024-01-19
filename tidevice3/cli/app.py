@@ -12,18 +12,20 @@ import os
 import shlex
 
 import click
-from pydantic import BaseModel
 from pymobiledevice3.cli.cli_common import print_json
-from pymobiledevice3.services.afc import AfcService
+from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
 from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
 
-from tidevice3.cli.cli_common import cli, gcfg
+from tidevice3.api import proclist
+from tidevice3.cli.cli_common import cli, pass_rsd, pass_service_provider
+from tidevice3.exceptions import FatalError
 from tidevice3.utils.common import print_dict_as_table
 from tidevice3.utils.download import download_file, is_hyperlink
 
+logger = logging.getLogger(__name__)
 
 @cli.group()
 def app():
@@ -33,7 +35,8 @@ def app():
 
 @app.command("install")
 @click.argument("path_or_url")
-def app_install(path_or_url: str):
+@pass_service_provider
+def app_install(service_provider: LockdownClient, path_or_url: str):
     """install given .ipa"""
     if is_hyperlink(path_or_url):
         ipa_path = download_file(path_or_url)
@@ -41,7 +44,6 @@ def app_install(path_or_url: str):
         ipa_path = path_or_url
     else:
         raise ValueError("local file not found", path_or_url)
-    service_provider = gcfg.get_lockdown_client()
     InstallationProxyService(lockdown=service_provider).install_from_local(ipa_path)
 
 
@@ -50,9 +52,9 @@ def app_install(path_or_url: str):
 @click.option("--user/--no-user", default=True, is_flag=True, help="include user apps")
 @click.option("--hidden", is_flag=True, help="include hidden apps")
 @click.option("--calculate-sizes/--no-calculate-size", default=False)
-def app_list(user: bool, system: bool, hidden: bool, calculate_sizes: bool):
+@pass_service_provider
+def app_list(service_provider: LockdownClient, user: bool, system: bool, hidden: bool, calculate_sizes: bool):
     """list installed apps"""
-    service_provider = gcfg.get_lockdown_client()
     app_types = []
     if user:
         app_types.append("User")
@@ -75,9 +77,9 @@ def app_list(user: bool, system: bool, hidden: bool, calculate_sizes: bool):
 
 @app.command("uninstall")
 @click.argument("bundle_identifier")
-def app_uninstall(bundle_identifier: str):
+@pass_service_provider
+def app_uninstall(service_provider: LockdownClient, bundle_identifier: str):
     """uninstall application"""
-    service_provider = gcfg.get_lockdown_client()
     InstallationProxyService(lockdown=service_provider).uninstall(bundle_identifier)
 
 
@@ -87,9 +89,9 @@ def app_uninstall(bundle_identifier: str):
 @click.option("--suspended", is_flag=True, help="Same as WaitForDebugger")
 @click.option("--env", multiple=True, type=click.Tuple((str, str)), help="Environment variables to pass to process given as a list of key value")
 @click.option("--stream", is_flag=True)
-def app_launch(arguments: str, kill_existing: bool, suspended: bool, env: tuple, stream: bool):
+@pass_rsd
+def app_launch(service_provider, arguments: str, kill_existing: bool, suspended: bool, env: tuple, stream: bool):
     """launch application"""
-    service_provider = gcfg.get_service_provider()
     with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
         process_control = ProcessControl(dvt)
         parsed_arguments = shlex.split(arguments)
@@ -110,22 +112,40 @@ def app_launch(arguments: str, kill_existing: bool, suspended: bool, env: tuple,
 
 @app.command("kill")
 @click.argument("pid", type=click.INT)
-def app_kill(pid: int):
+@pass_rsd
+def app_kill(service_provider, pid: int):
     """kill application"""
-    service_provider = gcfg.get_service_provider()
     with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
         process_control = ProcessControl(dvt)
         process_control.kill(pid)
 
 
 @app.command("ps")
-@click.option('--color/--no-color', default=True)
-def app_ps(color: bool):
+@click.option('--json/--no-json', default=False)
+@pass_rsd
+def app_ps(service_provider: LockdownClient, json: bool):
     """list running processes"""
-    service_provider = gcfg.get_service_provider()
-    with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
-        processes = DeviceInfo(dvt).proclist()
-        for process in processes:
-            if 'startDate' in process:
-                process['startDate'] = str(process['startDate'])
-        print_json(processes, colored=color)
+    if service_provider.product_version < "17":
+        logger.warning('iOS<17 have FD leak, which will cause an error when calling round more than 250 times.')
+    processes = list(proclist(service_provider))
+    processes = [p.model_dump(exclude_none=True) for p in processes if p.isApplication]
+    if json:
+        print_json(processes)
+    else:
+        print_dict_as_table(processes, ["pid", "name", "bundleIdentifier", "realAppName"])
+
+
+@app.command("current")
+@pass_rsd
+def app_current(service_provider: LockdownClient):
+    """show current running app, requires iOS>=17"""
+    if service_provider.product_version < "17":
+        raise FatalError("iOS<17 not supported")
+    current = None
+    for p in proclist(service_provider):
+        if p.foregroundRunning:
+            current = p
+            break
+    if current is None:
+        raise FatalError("No app running")
+    print(current.bundleIdentifier, f"pid:{current.pid}")

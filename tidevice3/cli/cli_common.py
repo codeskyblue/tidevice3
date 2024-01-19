@@ -6,81 +6,12 @@
 from __future__ import annotations
 
 import collections
-from dataclasses import dataclass, field
+from functools import update_wrapper
 
 import click
-import requests
 from pymobiledevice3.cli.cli_common import USBMUX_OPTION_HELP
-from pymobiledevice3.lockdown import LockdownClient, create_using_usbmux
-from pymobiledevice3.lockdown_service_provider import LockdownServiceProvider
-from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscoveryService
 
-from tidevice3.exceptions import FatalError
-
-DEFAULT_TIMEOUT = 60
-
-@dataclass
-class GlobalConfig:
-    color: bool = True
-    usbmux_address: str | None = None
-    _udid: str | None = None
-    _product_version: str | None = field(default=None, init=False)
-
-    def _update_property(self):
-        """ should be called after property changed is set """
-        with self.get_lockdown_client() as lockdown_client:
-            self._product_version = lockdown_client.product_version
-            self._udid = lockdown_client.udid
-    
-    @property
-    def udid(self) -> str:
-        if self._udid:
-            return self._udid
-        self._update_property()
-        return self._udid
-    
-    @property
-    def product_version(self) -> str:
-        if self._product_version:
-            return self._product_version
-        self._update_property()
-        return self._product_version
-
-    @property
-    def major_version(self) -> int:
-        return int(self.product_version.split(".")[0])
-    
-    def get_lockdown_client(self) -> LockdownClient:
-        return create_using_usbmux(serial=self._udid, usbmux_address=self.usbmux_address)
-    
-    def get_service_provider(self) -> LockdownServiceProvider:
-        if self.major_version >= 17:
-            return self._get_remote_service_discovery_service()
-        return self.get_lockdown_client()
-    
-    def _get_remote_service_discovery_service(self) -> RemoteServiceDiscoveryService:
-        try:
-            resp = requests.get("http://localhost:5555", timeout=DEFAULT_TIMEOUT)
-            tunnels = resp.json()
-            ipv6_address = tunnels.get(self.udid)
-            if ipv6_address is None:
-                raise FatalError("tunneld not ready for device", self.udid)
-            rsd = RemoteServiceDiscoveryService(ipv6_address)
-            rsd.connect()
-            return rsd
-        except requests.RequestException:
-            raise FatalError("Please run `sudo t3 tunneld` first")
-        except (TimeoutError, ConnectionError):
-            raise FatalError("RemoteServiceDiscoveryService connect failed")
-
-
-gcfg: GlobalConfig = GlobalConfig()
-
-
-def get_udid() -> str:
-    if gcfg.udid:
-        return gcfg.udid
-    raise RuntimeError("udid not set")
+from tidevice3.api import connect_service_provider
 
 
 class OrderedGroup(click.Group):
@@ -96,12 +27,34 @@ class OrderedGroup(click.Group):
 @click.group(cls=OrderedGroup, context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option("-u", "--udid", default=None, help="udid of device")
 @click.option("usbmux_address", "--usbmux", help=USBMUX_OPTION_HELP)
-@click.option("--color/--no-color", default=True)
-def cli(udid: str, usbmux_address: str, color: bool):
-    gcfg._udid = udid
-    gcfg.usbmux_address = usbmux_address
-    gcfg.color = color
-    
+@click.pass_context
+def cli(ctx: click.Context, udid: str, usbmux_address: str):
+    ctx.ensure_object(dict)
+    ctx.obj['udid'] = udid
+    ctx.obj['usbmux_address'] = usbmux_address
+
+
+def pass_service_provider(func):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        udid = ctx.obj['udid']
+        usbmux_address = ctx.obj['usbmux_address']
+        service_provider = connect_service_provider(udid, force_usbmux=True, usbmux_address=usbmux_address)
+        with service_provider:
+            return ctx.invoke(func, service_provider, *args, **kwargs)
+    return update_wrapper(new_func, func)
+
+
+def pass_rsd(func):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        udid = ctx.obj['udid']
+        usbmux_address = ctx.obj['usbmux_address']
+        service_provider = connect_service_provider(udid=udid, usbmux_address=usbmux_address)
+        with service_provider:
+            return ctx.invoke(func, service_provider, *args, **kwargs)
+    return update_wrapper(new_func, func)
+
 
 CLI_GROUPS = ["list", "developer", "install", "uninstall", "screenshot", "fsync", "app", "reboot", "tunneld", "exec"]
 for group in CLI_GROUPS:
