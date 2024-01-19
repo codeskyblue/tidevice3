@@ -48,31 +48,14 @@ def app_install(service_provider: LockdownClient, path_or_url: str):
 
 
 @app.command("list")
-@click.option("-s", "--system", is_flag=True, help="include system apps")
-@click.option("--user/--no-user", default=True, is_flag=True, help="include user apps")
-@click.option("--hidden", is_flag=True, help="include hidden apps")
+@click.option('app_type', '-t', '--type', type=click.Choice(['System', 'User', 'Hidden', 'Any']), default='Any',
+              help='include only applications of given type')
 @click.option("--calculate-sizes/--no-calculate-size", default=False)
 @pass_service_provider
-def app_list(service_provider: LockdownClient, user: bool, system: bool, hidden: bool, calculate_sizes: bool):
+def app_list(service_provider: LockdownClient, app_type: str, calculate_sizes: bool):
     """list installed apps"""
-    app_types = []
-    if user:
-        app_types.append("User")
-    if system:
-        app_types.append("System")
-    if hidden:
-        app_types.append("Hidden")
-    app_infos = InstallationProxyService(lockdown=service_provider).get_apps(
-        app_types, calculate_sizes=calculate_sizes
-    )
+    app_infos = InstallationProxyService(lockdown=service_provider).get_apps(app_type, calculate_sizes=calculate_sizes)
     print_dict_as_table(app_infos.values(), ["CFBundleIdentifier", "CFBundleDisplayName", "CFBundleVersion", "CFBundleShortVersionString"])
-
-
-# @app.command()
-# @click.argument("bundle_identifier")
-# def info(bundle_identifier: str):
-#     """show app info"""
-#     pass
 
 
 @app.command("uninstall")
@@ -149,3 +132,12 @@ def app_current(service_provider: LockdownClient):
     if current is None:
         raise FatalError("No app running")
     print(current.bundleIdentifier, f"pid:{current.pid}")
+
+
+@app.command("info")
+@click.argument("bundle_identifier")
+@pass_rsd
+def app_info(service_provider: LockdownClient, bundle_identifier: str):
+    with InstallationProxyService(lockdown=service_provider) as iproxy:
+        apps = iproxy.get_apps(bundle_identifiers=[bundle_identifier])
+        print_json(apps)

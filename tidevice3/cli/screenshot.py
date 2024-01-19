@@ -11,14 +11,14 @@ import click
 from pymobiledevice3.lockdown import LockdownClient
 
 from tidevice3.api import screenshot, screenshot_png
-from tidevice3.cli.cli_common import cli, pass_service_provider
+from tidevice3.cli.cli_common import cli, pass_rsd
 
 logger = logging.getLogger(__name__)
 
 
 @cli.command("screenshot")
 @click.argument("out", type=click.File("wb"))
-@pass_service_provider
+@pass_rsd
 def cli_screenshot(service_provider: LockdownClient, out: typing.BinaryIO):
     """get device screenshot"""
     if out.name.endswith(".png"):

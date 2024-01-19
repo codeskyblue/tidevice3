@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     try:
-        cli(auto_envvar_prefix='TIDEVICE3')
+        cli(auto_envvar_prefix='T3')
     except FatalError as e:
         click.echo(f"Error: {e}")
         sys.exit(1)

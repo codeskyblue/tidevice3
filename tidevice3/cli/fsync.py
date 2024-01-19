@@ -27,7 +27,6 @@ def pass_afc(func):
     @pass_service_provider
     @click.pass_context
     def new_func(ctx: click.Context, service_provider: LockdownClient, *args, **kwargs):
-        print(ctx, service_provider)
         if ctx.obj['bundle_id']:
             afc = HouseArrestService(lockdown=service_provider,
                                      bundle_id=ctx.obj['bundle_id'],

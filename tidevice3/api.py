@@ -115,4 +115,3 @@ def proclist(service_provider: LockdownClient) -> Iterator[ProcessInfo]:
             if 'startDate' in process:
                 process['startDate'] = str(process['startDate'])
                 yield ProcessInfo.model_validate(process)
-    k
