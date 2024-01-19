@@ -37,7 +37,7 @@ def app():
 @click.argument("path_or_url")
 @pass_service_provider
 def app_install(service_provider: LockdownClient, path_or_url: str):
-    """install given .ipa"""
+    """install given .ipa or url"""
     if is_hyperlink(path_or_url):
         ipa_path = download_file(path_or_url)
     elif os.path.isfile(path_or_url):
