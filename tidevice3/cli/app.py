@@ -118,20 +118,15 @@ def app_ps(service_provider: LockdownClient, json: bool):
         print_dict_as_table(processes, ["pid", "name", "bundleIdentifier", "realAppName"])
 
 
-@app.command("current")
+@app.command("foreground")
 @pass_rsd
-def app_current(service_provider: LockdownClient):
-    """show current running app, requires iOS>=17"""
+def app_foreground(service_provider: LockdownClient):
+    """show foreground running app, requires iOS>=17"""
     if service_provider.product_version < "17":
         raise FatalError("iOS<17 not supported")
-    current = None
     for p in proclist(service_provider):
         if p.foregroundRunning:
-            current = p
-            break
-    if current is None:
-        raise FatalError("No app running")
-    print(current.bundleIdentifier, f"pid:{current.pid}")
+            print(p.bundleIdentifier, f"pid:{p.pid}")
 
 
 @app.command("info")

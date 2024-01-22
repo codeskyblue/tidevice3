@@ -43,7 +43,7 @@ $ t3 reboot
 $ t3 fsync <ls|rm|pull|push> [Arguments...]
 
 # app
-$ t3 app <ps|list|launch|kill|instal|uninstall|current>
+$ t3 app <ps|list|launch|kill|instal|uninstall|foreground>
 
 # show help
 $ t3 --help
