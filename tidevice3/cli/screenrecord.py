@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def draw_text(pil_img: Image.Image, text: str):
     """ GPT生成的，效果勉强吧，不太好，总比没有的强 """
     draw = ImageDraw.Draw(pil_img)
-    font = ImageFont.load_default(20)
+    font = ImageFont.load_default()
 
     # Calculate the bounding box of the text
     text_bbox = font.getbbox(text)
