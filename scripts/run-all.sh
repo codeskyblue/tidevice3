@@ -39,7 +39,8 @@ t3 list
 t3 developer
 t3 exec version
 t3 screenshot a.png && rm a.png
-t3 reboot -h
+t3 screenrecord --help
+t3 reboot --help
 
 test_fsync
 test_app

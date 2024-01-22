@@ -45,6 +45,9 @@ $ t3 fsync <ls|rm|pull|push> [Arguments...]
 # app
 $ t3 app <ps|list|launch|kill|instal|uninstall|foreground>
 
+# screenrecord
+$ t3 screenrecord out.mp4
+
 # show help
 $ t3 --help
 ```

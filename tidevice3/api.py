@@ -89,15 +89,24 @@ def connect_remote_service_discovery_service(udid: str, tunneld_url: str = 'http
         raise FatalError("Please run `sudo t3 tunneld` first")
     except (TimeoutError, ConnectionError):
         raise FatalError("RemoteServiceDiscoveryService connect failed")
-    
+
+def iter_screenshot(service_provider: LockdownClient) -> Iterator[bytes]:
+    if int(service_provider.product_version.split(".")[0]) >= 17:
+        with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
+            screenshot_service = Screenshot(dvt)
+            while True:
+                yield screenshot_service.get_screenshot()
+    else:
+        screenshot_service = ScreenshotService(service_provider)
+        while True:
+            yield screenshot_service.take_screenshot()
+
 
 def screenshot_png(service_provider: LockdownClient) -> bytes:
     """ get screenshot as png data """
-    if int(service_provider.product_version.split(".")[0]) >= 17:
-        with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
-            png_data = Screenshot(dvt).get_screenshot()
-    else:
-        png_data = ScreenshotService(service_provider).take_screenshot()
+    it = iter_screenshot(service_provider)
+    png_data = next(it)
+    it.close()
     return png_data
 
 
