@@ -14,9 +14,9 @@ click = "*"
 pydantic = "^2.5.3"
 fastapi = "*"
 requests = "*"
-pillow = "*"
 numpy = "*"
 imageio = {extras = ["ffmpeg"], version = "^2.33.1"}
+pillow = "^10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

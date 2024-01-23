@@ -4,19 +4,45 @@
 import datetime
 import io
 import logging
+import time
+from typing import Any, Iterator
 
 import click
+import imageio.v2 as imageio
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from pymobiledevice3.lockdown import LockdownClient
 
 from tidevice3.api import iter_screenshot
 from tidevice3.cli.cli_common import cli, pass_rsd
-from tidevice3.exceptions import FatalError
 
 logger = logging.getLogger(__name__)
 
 
+def limit_fps(screenshot_iterator: Iterator[Any], fps: int) -> Iterator[Any]:
+    frame_duration = 1.0 / fps
+    next_frame_time = time.time()
+    last_screenshot = None
+
+    for screenshot in screenshot_iterator:
+        current_time = time.time()
+
+        if current_time >= next_frame_time:
+            last_screenshot = screenshot
+
+            # Write frame to video
+            yield screenshot
+
+            # Schedule next frame
+            next_frame_time += frame_duration
+
+        # Fill in with the last image if the next frame time is still in the future
+        while next_frame_time <= current_time:
+            if last_screenshot is not None:
+                yield last_screenshot
+            next_frame_time += frame_duration
+
+        
 def draw_text(pil_img: Image.Image, text: str):
     """ GPT生成的，效果勉强吧，不太好，总比没有的强 """
     draw = ImageDraw.Draw(pil_img)
@@ -50,24 +76,20 @@ def draw_text(pil_img: Image.Image, text: str):
 @pass_rsd
 def cli_screenrecord(service_provider: LockdownClient, out: str, fps: int, show_time: bool):
     """ screenrecord to mp4 """
-    try:
-        import imageio.v2 as imageio
-    except ImportError:
-        raise FatalError("Please install imageio first, pip3 install imageio[ffmpeg]")
-    
     writer = imageio.get_writer(out, fps=fps, macro_block_size=1)
-    n = 0
+    frame_index = 0
     try:
-        for png_data in iter_screenshot(service_provider):
+        for png_data in limit_fps(iter_screenshot(service_provider), fps):
             pil_img = Image.open(io.BytesIO(png_data))
             if show_time:
                 time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                draw_text(pil_img, f'Time: {time_str} Frame: {n}')
+                draw_text(pil_img, f'Time: {time_str} Frame: {frame_index}')
             print(".", end="", flush=True)
             frame_with_text = np.array(pil_img)
             writer.append_data(frame_with_text)
-            n += 1
+            frame_index += 1
     except KeyboardInterrupt:
+        print("")
         pass
     finally:
         writer.close()
