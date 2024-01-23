@@ -42,7 +42,7 @@ def limit_fps(screenshot_iterator: Iterator[Any], fps: int) -> Iterator[Any]:
                 yield last_screenshot
             next_frame_time += frame_duration
 
-        
+
 def draw_text(pil_img: Image.Image, text: str):
     """ GPT生成的，效果勉强吧，不太好，总比没有的强 """
     draw = ImageDraw.Draw(pil_img)
@@ -69,6 +69,15 @@ def draw_text(pil_img: Image.Image, text: str):
     return pil_img
 
 
+def img_resize(img: Image):
+    """
+    部分机型截图的尺寸不对，所以需要resize，目前发现机型：iPhone x
+    """
+    if img.size[0] % 2 != 0 or img.size[1] % 2 != 0:
+        img = img.resize((img.size[0] // 2 * 2, img.size[1] // 2 * 2))
+    return img
+
+
 @cli.command("screenrecord")
 @click.option("--fps", default=5, help="frame per second")
 @click.option("--show-time/--no-show-time", default=True, help="show time on screen")
@@ -80,7 +89,7 @@ def cli_screenrecord(service_provider: LockdownClient, out: str, fps: int, show_
     frame_index = 0
     try:
         for png_data in limit_fps(iter_screenshot(service_provider), fps):
-            pil_img = Image.open(io.BytesIO(png_data))
+            pil_img = img_resize(Image.open(io.BytesIO(png_data)))
             if show_time:
                 time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 draw_text(pil_img, f'Time: {time_str} Frame: {frame_index}')
