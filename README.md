@@ -7,12 +7,23 @@ wrapper for pymobiledevice3 to make it more easy to use.
 
 # Install
 
+Mac
+
 ```bash
 pip install tidevice3
 
 # or install as Isolated environment
 brew install pipx
 pipx install tidevice3
+```
+
+Linux
+
+```bash
+# required by pytun-pmd3
+sudo apt install python3-dev gcc pipx
+pipx install tidevice3
+pipx ensurepath
 ```
 
 # Usage
@@ -69,6 +80,12 @@ for d in list_devices(usb=True):
 - Mac (supported)
 - Windows (https://github.com/doronz88/pymobiledevice3/issues/569)
 - Linux (https://github.com/doronz88/pymobiledevice3/issues/566)
+
+# WDA
+其实WDA启动可以不用XCUITest，下面是知道方法（适用于iOS >= 15)
+
+- iOS企业重签名方法 https://zhuanlan.zhihu.com/p/673521212
+- iOS WDA脱离xcode & tidevice运行自动化 https://zhuanlan.zhihu.com/p/673319266
 
 # DEVELOP & CONTRIBUTE
 see [DEVELOP.md](DEVELOP.md)
