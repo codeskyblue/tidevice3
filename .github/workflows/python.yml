@@ -58,3 +58,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_TOKEN }}
+
+    - name: Refresh Badge
+      run: |
+        curl -X PURGE https://camo.githubusercontent.com/8646ff049d2c966e398ae621ed8cd99ffe4b95ae9f5efe0fd57eda9425844104/68747470733a2f2f62616467652e667572792e696f2f70792f7469646576696365332e737667
