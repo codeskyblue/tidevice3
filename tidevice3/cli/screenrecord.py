@@ -19,7 +19,8 @@ from tidevice3.cli.cli_common import cli, pass_rsd
 logger = logging.getLogger(__name__)
 
 
-def limit_fps(screenshot_iterator: Iterator[Any], fps: int) -> Iterator[Any]:
+def limit_fps(screenshot_iterator: Iterator[Any], fps: int, debug: bool = False) -> Iterator[Any]:
+    """ Limit the frame rate of the screenshot iterator to the given FPS """
     frame_duration = 1.0 / fps
     next_frame_time = time.time()
     last_screenshot = None
@@ -31,6 +32,8 @@ def limit_fps(screenshot_iterator: Iterator[Any], fps: int) -> Iterator[Any]:
             last_screenshot = screenshot
 
             # Write frame to video
+            if debug:
+                print(".", end="", flush=True)
             yield screenshot
 
             # Schedule next frame
@@ -39,6 +42,8 @@ def limit_fps(screenshot_iterator: Iterator[Any], fps: int) -> Iterator[Any]:
         # Fill in with the last image if the next frame time is still in the future
         while next_frame_time <= current_time:
             if last_screenshot is not None:
+                if debug:
+                    print("o", end="", flush=True)
                 yield last_screenshot
             next_frame_time += frame_duration
 
@@ -69,12 +74,16 @@ def draw_text(pil_img: Image.Image, text: str):
     return pil_img
 
 
-def img_resize(img: Image):
+def resize_for_ffmpeg(img: Image.Image) -> Image.Image:
     """
     部分机型截图的尺寸不对，所以需要resize，目前发现机型：iPhone x
     """
-    if img.size[0] % 2 != 0 or img.size[1] % 2 != 0:
-        img = img.resize((img.size[0] // 2 * 2, img.size[1] // 2 * 2))
+    w, h = img.size
+    if w % 2 != 0:
+        w -= 1
+    if h % 2 != 0:
+        h -= 1
+    img = img.crop((0, 0, w, h))
     return img
 
 
@@ -85,17 +94,17 @@ def img_resize(img: Image):
 @pass_rsd
 def cli_screenrecord(service_provider: LockdownClient, out: str, fps: int, show_time: bool):
     """ screenrecord to mp4 """
-    writer = imageio.get_writer(out, fps=fps, macro_block_size=1)
+    writer = imageio.get_writer(out, fps=fps)#, macro_block_size=1)
     frame_index = 0
     try:
-        for png_data in limit_fps(iter_screenshot(service_provider), fps):
-            pil_img = img_resize(Image.open(io.BytesIO(png_data)))
+        for png_data in limit_fps(iter_screenshot(service_provider), fps, debug=True):
+            pil_img = Image.open(io.BytesIO(png_data))
+            pil_img = resize_for_ffmpeg(pil_img)
             if show_time:
                 time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 draw_text(pil_img, f'Time: {time_str} Frame: {frame_index}')
-            print(".", end="", flush=True)
-            frame_with_text = np.array(pil_img)
-            writer.append_data(frame_with_text)
+            
+            writer.append_data(np.array(pil_img))
             frame_index += 1
     except KeyboardInterrupt:
         print("")
