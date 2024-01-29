@@ -22,6 +22,7 @@ pillow = "^10.0"
 pytest = "^7.4.4"
 pytest-cov = "^4.1.0"
 pytest-httpserver = "^1.0.8"
+isort = "^5.13.2"
 
 [tool.poetry.scripts]
 t3 = "tidevice3.__main__:main"
