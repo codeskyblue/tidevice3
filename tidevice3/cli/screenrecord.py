@@ -94,7 +94,7 @@ def resize_for_ffmpeg(img: Image.Image) -> Image.Image:
 @pass_rsd
 def cli_screenrecord(service_provider: LockdownClient, out: str, fps: int, show_time: bool):
     """ screenrecord to mp4 """
-    writer = imageio.get_writer(out, fps=fps)#, macro_block_size=1)
+    writer = imageio.get_writer(out, fps=fps)
     frame_index = 0
     try:
         for png_data in limit_fps(iter_screenshot(service_provider), fps, debug=True):
@@ -108,7 +108,6 @@ def cli_screenrecord(service_provider: LockdownClient, out: str, fps: int, show_
             frame_index += 1
     except KeyboardInterrupt:
         print("")
-        pass
     finally:
         writer.close()
         logger.info("screenrecord saved to %s", out)

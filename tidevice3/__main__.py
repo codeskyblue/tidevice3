@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def main():
     try:
         cli(auto_envvar_prefix='T3')
-    except FatalError as e:
+    except (FatalError, ValueError) as e:
         click.echo(f"Error: {e}")
         sys.exit(1)
     except NoDeviceConnectedError:

@@ -56,6 +56,6 @@ def pass_rsd(func):
     return update_wrapper(new_func, func)
 
 
-CLI_GROUPS = ["list", "developer", "screenshot", "screenrecord", "fsync", "app", "reboot", "tunneld", "exec"]
+CLI_GROUPS = ["list", "developer", "screenshot", "screenrecord", "fsync", "app", "reboot", "tunneld", "runwda", "exec"]
 for group in CLI_GROUPS:
     __import__(f"tidevice3.cli.{group}")
