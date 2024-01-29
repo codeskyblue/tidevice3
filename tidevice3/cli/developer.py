@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @pass_service_provider
 def cli_developer(service_provider: LockdownClient):
     """ enable developer mode """
-    if Version(service_provider.product_version) >= Version("17"):
+    if Version(service_provider.product_version) >= Version("16"):
         if not service_provider.developer_mode_status:
             logger.info('enable developer mode')
             AmfiService(service_provider).enable_developer_mode()

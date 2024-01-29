@@ -26,7 +26,20 @@ pipx install tidevice3
 pipx ensurepath
 ```
 
-# Usage
+# CLI Usage
+
+iOS >= 17 `screenshot,app:ps` connect through Ethernet over USB (NCM device) instead of usbmuxd
+So tunneld should start first.
+
+```bash
+# start tunneld for iOS>=17
+# launch process (pmd3 remote start-tunnel) when new usb device connected
+# root required
+$ sudo t3 tunneld
+```
+
+Basic usage
+
 ```bash
 $ t3 list
 ...
@@ -38,11 +51,6 @@ $ t3 developer
 $ t3 install https://....ipa
 $ t3 install ./some.ipa
 $ t3 uninstall com.example
-
-# start tunneld for iOS>=17
-# launch process (pmd3 remote start-tunnel) when new usb device connected
-# root required
-$ sudo t3 tunneld
 
 # take screenshot
 $ t3 screenshot out.png
@@ -76,10 +84,12 @@ for d in list_devices(usb=True):
     pil_im.save("screenshot.png")
 ```
 
-# Platform support
+# iOS 17 support
 - Mac (supported)
 - Windows (https://github.com/doronz88/pymobiledevice3/issues/569)
 - Linux (https://github.com/doronz88/pymobiledevice3/issues/566)
+
+Mac,Windows,Linux all supported iOS<17
 
 # WDA
 其实WDA启动可以不用XCUITest，下面是知道方法（适用于iOS >= 15)
