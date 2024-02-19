@@ -92,7 +92,7 @@ for d in list_devices(usb=True):
 Mac,Windows,Linux all supported iOS<17
 
 # WDA
-其实WDA启动可以不用XCUITest，下面是知道方法（适用于iOS >= 15)
+其实WDA启动可以不用XCUITest，下面是具体的方法（适用于iOS >= 15)
 
 - iOS企业重签名方法 https://zhuanlan.zhihu.com/p/673521212
 - iOS WDA脱离xcode & tidevice运行自动化 https://zhuanlan.zhihu.com/p/673319266
