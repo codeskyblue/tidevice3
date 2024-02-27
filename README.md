@@ -64,6 +64,10 @@ $ t3 fsync <ls|rm|pull|push> [Arguments...]
 # app
 $ t3 app <ps|list|launch|kill|instal|uninstall|foreground>
 
+# install
+# alias for app install
+$ t3 install <URL or LocalIPA>
+
 # screenrecord
 $ t3 screenrecord out.mp4
 
@@ -75,13 +79,16 @@ $ t3 --help
 The API alone is insufficient for all operations; combining it with the pymobiledevice3 library can accomplish more things.
 
 ```python
-from tidevice3.api import list_devices, connect_service_provider, screenshot
+from tidevice3.api import list_devices, connect_service_provider, screenshot, app_install
 
 for d in list_devices(usb=True):
     print("UDID:", d.Identifier)
     service_provider = connect_service_provider(d.Identifier)
     pil_im = screenshot(service_provider)
     pil_im.save("screenshot.png")
+
+    # install ipa from URL or local
+    app_install(service_provider, "https://example.org/some.ipa")
 ```
 
 # iOS 17 support
