@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import os
 from typing import Iterator, Optional
 
 import requests
@@ -14,9 +15,11 @@ from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscove
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
 from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 from pymobiledevice3.services.dvt.instruments.screenshot import Screenshot
+from pymobiledevice3.services.installation_proxy import InstallationProxyService
 from pymobiledevice3.services.screenshot import ScreenshotService
 
 from tidevice3.exceptions import FatalError
+from tidevice3.utils.download import download_file, is_hyperlink
 
 
 class DeviceShortInfo(BaseModel):
@@ -124,3 +127,13 @@ def proclist(service_provider: LockdownClient) -> Iterator[ProcessInfo]:
             if 'startDate' in process:
                 process['startDate'] = str(process['startDate'])
                 yield ProcessInfo.model_validate(process)
+
+
+def app_install(service_provider: LockdownClient, path_or_url: str):
+    if is_hyperlink(path_or_url):
+        ipa_path = download_file(path_or_url)
+    elif os.path.isfile(path_or_url):
+        ipa_path = path_or_url
+    else:
+        raise ValueError("local file not found", path_or_url)
+    InstallationProxyService(lockdown=service_provider).install_from_local(ipa_path)

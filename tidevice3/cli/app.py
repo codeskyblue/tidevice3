@@ -15,15 +15,13 @@ import click
 from pymobiledevice3.cli.cli_common import print_json
 from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.services.dvt.dvt_secure_socket_proxy import DvtSecureSocketProxyService
-from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
 
-from tidevice3.api import proclist
+from tidevice3.api import app_install, proclist
 from tidevice3.cli.cli_common import cli, pass_rsd, pass_service_provider
 from tidevice3.exceptions import FatalError
 from tidevice3.utils.common import print_dict_as_table
-from tidevice3.utils.download import download_file, is_hyperlink
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +34,9 @@ def app():
 @app.command("install")
 @click.argument("path_or_url")
 @pass_service_provider
-def app_install(service_provider: LockdownClient, path_or_url: str):
+def cli_app_install(service_provider: LockdownClient, path_or_url: str):
     """install given .ipa or url"""
-    if is_hyperlink(path_or_url):
-        ipa_path = download_file(path_or_url)
-    elif os.path.isfile(path_or_url):
-        ipa_path = path_or_url
-    else:
-        raise ValueError("local file not found", path_or_url)
-    InstallationProxyService(lockdown=service_provider).install_from_local(ipa_path)
+    app_install(service_provider, path_or_url)
 
 
 @app.command("list")
