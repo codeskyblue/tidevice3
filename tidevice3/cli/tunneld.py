@@ -19,6 +19,7 @@ import uvicorn
 from fastapi import FastAPI
 from packaging.version import Version
 from pymobiledevice3.exceptions import MuxException
+from pymobiledevice3.cli.cli_common import is_admin_user
 
 from tidevice3.cli.cli_common import cli
 from tidevice3.cli.list import list_devices
@@ -156,8 +157,12 @@ class DeviceManager:
 @click.option("--port", "port", help="listen port", default=5555)
 def tunneld(pmd3_path: str, port: int):
     """start server for iOS >= 17 auto start-tunnel, function like pymobiledevice3 remote tunneld"""
-    if os.getuid() != 0:
-        logger.error("Please run as root")
+    if not is_admin_user():
+        if sys.platform == 'win32':
+            logger.error('This command requires admin privileges. Consider retrying with "run-as administrator".')
+        else:
+            logger.error('This command requires root privileges. Consider retrying with "sudo".')
+
         sys.exit(1)
 
     manager = DeviceManager()
