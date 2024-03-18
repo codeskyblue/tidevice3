@@ -71,6 +71,10 @@ $ t3 install <URL or LocalIPA>
 # screenrecord
 $ t3 screenrecord out.mp4
 
+# relay (like iproxy LOCAL_PORT DEVICE_PORT)
+$ t3 relay 8100 8100
+$ t3 relay 8100 8100 --source 0.0.0.0 --daemonize
+
 # show help
 $ t3 --help
 ```

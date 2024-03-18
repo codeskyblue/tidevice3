@@ -9,7 +9,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pymobiledevice3 = "^2.39.2"
+pymobiledevice3 = "^2.46.2"
 click = "*"
 pydantic = "^2.5.3"
 fastapi = "*"
