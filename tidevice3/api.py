@@ -5,6 +5,7 @@ import datetime
 import io
 import os
 from typing import Iterator, Optional
+import logging
 
 import requests
 from PIL import Image
@@ -17,10 +18,12 @@ from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 from pymobiledevice3.services.dvt.instruments.screenshot import Screenshot
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
 from pymobiledevice3.services.screenshot import ScreenshotService
+from pymobiledevice3.services.dvt.instruments.process_control import ProcessControl
 
 from tidevice3.exceptions import FatalError
 from tidevice3.utils.download import download_file, is_hyperlink
 
+logger = logging.getLogger(__name__)
 
 class DeviceShortInfo(BaseModel):
     BuildVersion: str
@@ -137,3 +140,49 @@ def app_install(service_provider: LockdownClient, path_or_url: str):
     else:
         raise ValueError("local file not found", path_or_url)
     InstallationProxyService(lockdown=service_provider).install_from_local(ipa_path)
+
+def app_get(service_provider: LockdownClient,name:str=None):
+    if service_provider:
+        apps = InstallationProxyService(lockdown=service_provider).get_apps()
+        obj = {}
+        for k in apps:
+            b = apps.get(k)
+            if name and name in b.get('CFBundleName'):
+                obj[name] = k
+                break
+            if name is None:
+                obj[b.get('CFBundleName')] =  k
+        if obj:
+            return obj
+        else:
+            return None
+    else:
+        return None
+
+
+def app_launch(service_provider:LockdownClient,bundle_id:str, arguments: str='', kill_existing: bool=False, suspended: bool=False, env: tuple=(), stream: bool=False):
+    """launch application"""
+    pid = None
+    with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
+        process_control = ProcessControl(dvt)
+        pid = process_control.launch(
+            bundle_id=bundle_id,
+            arguments=arguments,
+            kill_existing=kill_existing,
+            start_suspended=suspended,
+            environment=dict(env),
+        )
+        print(f"Process launched with pid {pid}")
+        while stream:
+            for output_received in process_control:
+                logging.getLogger(f"PID:{output_received.pid}").info(
+                    output_received.message.strip()
+                )
+    return pid
+
+
+def app_kill(service_provider:LockdownClient,pid: int):
+    """kill application"""
+    with DvtSecureSocketProxyService(lockdown=service_provider) as dvt:
+        process_control = ProcessControl(dvt)
+        process_control.kill(pid)
