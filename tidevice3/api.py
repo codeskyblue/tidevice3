@@ -141,7 +141,7 @@ def app_install(service_provider: LockdownClient, path_or_url: str):
         raise ValueError("local file not found", path_or_url)
     InstallationProxyService(lockdown=service_provider).install_from_local(ipa_path)
 
-def app_get(service_provider: LockdownClient,name:str=None):
+def app_info(service_provider: LockdownClient,name:str=None):
     if service_provider:
         apps = InstallationProxyService(lockdown=service_provider).get_apps()
         obj = {}
