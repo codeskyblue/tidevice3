@@ -11,5 +11,6 @@ def test_api(tmp_path: Path):
     for d in list_devices(usb=True):
         print("UDID:", d.Identifier)
         service_provider = connect_service_provider(d.Identifier)
-        pil_im = screenshot(service_provider)
-        pil_im.save(tmp_path / "screenshot.png")
+        with service_provider:
+            pil_im = screenshot(service_provider)
+            pil_im.save(tmp_path / "screenshot.png")

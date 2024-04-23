@@ -6,10 +6,11 @@
 Ref: https://github.com/doronz88/pymobiledevice3/blob/master/pymobiledevice3/cli/usbmux.py#L32
 """
 
-from functools import partial
 import logging
 import tempfile
 import threading
+from functools import partial
+
 import click
 from pymobiledevice3.lockdown import LockdownClient
 from pymobiledevice3.tcp_forwarder import UsbmuxTcpForwarder

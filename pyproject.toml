@@ -9,7 +9,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pymobiledevice3 = "^2.46.2"
+pymobiledevice3 = "^4.2.3"
 click = "*"
 pydantic = "^2.5.3"
 fastapi = "*"
@@ -17,6 +17,7 @@ requests = "*"
 numpy = "*"
 imageio = {extras = ["ffmpeg"], version = "^2.33.1"}
 pillow = "^10.0"
+zeroconf = "^0.132.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

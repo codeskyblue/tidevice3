@@ -19,14 +19,14 @@ import uvicorn
 from fastapi import FastAPI
 from packaging.version import Version
 from pymobiledevice3.exceptions import MuxException
-from pymobiledevice3.cli.cli_common import is_admin_user
+from pymobiledevice3.osu.os_utils import OsUtils
 
 from tidevice3.cli.cli_common import cli
 from tidevice3.cli.list import list_devices
 from tidevice3.utils.common import threadsafe_function
 
 logger = logging.getLogger(__name__)
-
+os_utils = OsUtils.create()
 
 class Address(NamedTuple):
     ip: str
@@ -157,7 +157,7 @@ class DeviceManager:
 @click.option("--port", "port", help="listen port", default=5555)
 def tunneld(pmd3_path: str, port: int):
     """start server for iOS >= 17 auto start-tunnel, function like pymobiledevice3 remote tunneld"""
-    if not is_admin_user():
+    if not os_utils.is_admin:
         logger.error("Please run as root(Mac) or administrator(Windows)")
         sys.exit(1)
 

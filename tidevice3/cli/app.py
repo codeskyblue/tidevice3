@@ -40,7 +40,7 @@ def cli_app_install(service_provider: LockdownClient, path_or_url: str):
 
 
 @app.command("list")
-@click.option('app_type', '-t', '--type', type=click.Choice(['System', 'User', 'Hidden', 'Any']), default='Any',
+@click.option('app_type', '-t', '--type', type=click.Choice(['System', 'User', 'Hidden', 'Any']), default='User',
               help='include only applications of given type')
 @click.option("--calculate-sizes/--no-calculate-size", default=False)
 @pass_service_provider
