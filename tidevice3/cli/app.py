@@ -97,15 +97,16 @@ def app_kill(service_provider, pid: int):
 
 @app.command("ps")
 @click.option('--json/--no-json', default=False)
+@click.option("--color/--no-color", default=True, help="print colord")
 @pass_rsd
-def app_ps(service_provider: LockdownClient, json: bool):
+def app_ps(service_provider: LockdownClient, json: bool, color: bool):
     """list running processes"""
     if service_provider.product_version < "17":
         logger.warning('iOS<17 have FD leak, which will cause an error when calling round more than 250 times.')
     processes = list(proclist(service_provider))
     processes = [p.model_dump(exclude_none=True) for p in processes if p.isApplication]
     if json:
-        print_json(processes)
+        print_json(processes, color)
     else:
         print_dict_as_table(processes, ["pid", "name", "bundleIdentifier", "realAppName"])
 
@@ -123,8 +124,9 @@ def app_foreground(service_provider: LockdownClient):
 
 @app.command("info")
 @click.argument("bundle_identifier")
+@click.option("--color/--no-color", default=True, help="print colord")
 @pass_rsd
-def app_info(service_provider: LockdownClient, bundle_identifier: str):
+def app_info(service_provider: LockdownClient, bundle_identifier: str, color: bool):
     with InstallationProxyService(lockdown=service_provider) as iproxy:
         apps = iproxy.get_apps(bundle_identifiers=[bundle_identifier])
-        print_json(apps)
+        print_json(apps, color)
