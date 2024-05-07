@@ -11,7 +11,7 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Mapping, NamedTuple, Tuple
+from typing import List, Mapping, NamedTuple, Tuple
 
 import click
 import fastapi
@@ -43,11 +43,11 @@ def get_connected_devices() -> list[str]:
     return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17")]
 
 
-def guess_pymobiledevice3_path() -> str:
+def guess_pymobiledevice3_cmd() -> List[str]:
     pmd3path = shutil.which("pymobiledevice3")
     if not pmd3path:
-        pmd3path = sys.executable + " -m pymobiledevice3"
-    return pmd3path
+        return [sys.executable, '-m', 'pymobiledevice3']
+    return [pmd3path]
 
 
 class TunnelError(Exception):
@@ -55,7 +55,7 @@ class TunnelError(Exception):
 
 
 @threadsafe_function
-def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
+def start_tunnel(pmd3_path: List[str], udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     Start program, should be killed when the main program quit
 
@@ -64,10 +64,10 @@ def start_tunnel(pmd3_path: str, udid: str) -> Tuple[Address, subprocess.Popen]:
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
     log_prefix = f"[{udid}]"
-    cmd = f"{pmd3_path} remote start-tunnel --script-mode --udid {udid}"
-    logger.info("%s cmd: %s", log_prefix, cmd)
+    cmdargs = pmd3_path + f"remote start-tunnel --script-mode --udid {udid}".split()
+    logger.info("%s cmd: %s", log_prefix, shlex.join(cmdargs))
     process = subprocess.Popen(
-        shlex.split(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
+        cmdargs, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
     )
     output_str = process.stdout.readline().decode("utf-8").strip()
     if output_str == "":
@@ -84,7 +84,7 @@ class DeviceManager:
         self.active_monitors: Mapping[str, subprocess.Popen] = {}
         self.running = True
         self.addresses: Mapping[str, Address] = {}
-        self.pmd3_path = "pymobiledevice3"
+        self.pmd3_cmd = ["pymobiledevice3"]
 
     def update_devices(self):
         current_devices = set(get_connected_devices())
@@ -113,7 +113,7 @@ class DeviceManager:
     def _start_tunnel_keeper(self, udid: str):
         while udid in self.active_monitors:
             try:
-                addr, process = start_tunnel(self.pmd3_path, udid)
+                addr, process = start_tunnel(self.pmd3_cmd, udid)
                 self.active_monitors[udid] = process
                 self.addresses[udid] = addr
                 self._wait_process_exit(process, udid)
@@ -152,7 +152,7 @@ class DeviceManager:
     "--pmd3-path",
     "pmd3_path",
     help="pymobiledevice3 cli path",
-    default=guess_pymobiledevice3_path(),
+    default=None,
 )
 @click.option("--port", "port", help="listen port", default=5555)
 def tunneld(pmd3_path: str, port: int):
@@ -174,7 +174,10 @@ def tunneld(pmd3_path: str, port: int):
         os.kill(os.getpid(), signal.SIGINT)
         return fastapi.Response(status_code=200, content="Server shutting down...")
 
-    manager.pmd3_path = pmd3_path
+    if pmd3_path is None:
+        manager.pmd3_cmd = guess_pymobiledevice3_cmd()
+    else:
+        manager.pmd3_cmd = [pmd3_path]
 
     threading.Thread(
         target=manager.run_forever, daemon=True, name="device_manager"
