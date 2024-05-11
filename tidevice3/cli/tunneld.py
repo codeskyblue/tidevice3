@@ -28,6 +28,7 @@ from tidevice3.utils.common import threadsafe_function
 logger = logging.getLogger(__name__)
 os_utils = OsUtils.create()
 
+
 class Address(NamedTuple):
     ip: str
     port: int
@@ -41,6 +42,16 @@ def get_connected_devices() -> list[str]:
         logger.error("list_devices failed: %s", e)
         return []
     return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17")]
+
+
+def get_need_lockdown_devices() -> list[str]:
+    """return list of udid"""
+    try:
+        devices = list_devices(usb=True, network=False)
+    except MuxException as e:
+        logger.error("list_devices failed: %s", e)
+        return []
+    return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17.4")]
 
 
 def guess_pymobiledevice3_cmd() -> List[str]:
@@ -64,7 +75,10 @@ def start_tunnel(pmd3_path: List[str], udid: str) -> Tuple[Address, subprocess.P
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
     log_prefix = f"[{udid}]"
-    cmdargs = pmd3_path + f"remote start-tunnel --script-mode --udid {udid}".split()
+    start_tunnel_cmd = "remote"
+    if udid in get_need_lockdown_devices():
+        start_tunnel_cmd = "lockdown"
+    cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {udid}".split()
     logger.info("%s cmd: %s", log_prefix, shlex.join(cmdargs))
     process = subprocess.Popen(
         cmdargs, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
@@ -120,9 +134,9 @@ class DeviceManager:
             except TunnelError:
                 logger.exception("udid: %s start-tunnel failed", udid)
             time.sleep(3)
-    
+
     def _wait_process_exit(self, process: subprocess.Popen, udid: str):
-         while True:
+        while True:
             try:
                 process.wait(1.0)
                 self.addresses.pop(udid, None)
