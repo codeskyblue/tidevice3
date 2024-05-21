@@ -34,14 +34,18 @@ class Address(NamedTuple):
     port: int
 
 
-def get_connected_devices() -> list[str]:
+def get_connected_devices(wifi: bool) -> list[str]:
     """return list of udid"""
     try:
-        devices = list_devices(usb=True, network=False)
+        usb_devices = list_devices(usb=True, network=False)
+        devices = ["usb_" + d.Identifier for d in usb_devices if Version(d.ProductVersion) >= Version("17")]
+        if wifi:
+            wifi_devices = list_devices(usb=False, network=True)
+            devices.extend(["wifi_" + d.Identifier for d in wifi_devices if Version(d.ProductVersion) >= Version("17")])
     except MuxException as e:
         logger.error("list_devices failed: %s", e)
         return []
-    return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17")]
+    return devices
 
 
 def get_need_lockdown_devices() -> list[str]:
@@ -74,11 +78,16 @@ def start_tunnel(pmd3_path: List[str], udid: str) -> Tuple[Address, subprocess.P
         TunnelError
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
-    log_prefix = f"[{udid}]"
+    device_type, _udid = udid.split("_")[0], udid.split("_")[1]
+    log_prefix = f"[{_udid}]"
     start_tunnel_cmd = "remote"
-    if udid in get_need_lockdown_devices():
-        start_tunnel_cmd = "lockdown"
-    cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {udid}".split()
+    lockdown_devices = get_need_lockdown_devices()
+    if device_type == "wifi" and _udid not in lockdown_devices:
+        cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {_udid} -t wifi".split()
+    else:
+        if _udid in lockdown_devices:
+            start_tunnel_cmd = "lockdown"
+        cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {_udid}".split()
     logger.info("%s cmd: %s", log_prefix, shlex.join(cmdargs))
     process = subprocess.Popen(
         cmdargs, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
@@ -100,12 +109,16 @@ class DeviceManager:
         self.addresses: Mapping[str, Address] = {}
         self.pmd3_cmd = ["pymobiledevice3"]
 
-    def update_devices(self):
-        current_devices = set(get_connected_devices())
-        active_udids = set(self.active_monitors.keys())
+    def update_devices(self, wifi: bool):
+        current_devices = get_connected_devices(wifi)
+        active_udids = self.active_monitors.keys()
 
         # Start monitors for new devices
-        for udid in current_devices - active_udids:
+        for udid in current_devices:
+            if udid in active_udids:
+                continue
+            if udid.replace("wifi", "usb") in active_udids:       # skip if device already monitered by usb
+                continue
             self.active_monitors[udid] = None
             try:
                 threading.Thread(name=f"{udid} keeper",
@@ -116,7 +129,9 @@ class DeviceManager:
                 logger.error("udid: %s start-tunnel failed: %s", udid, e)
 
         # Stop monitors for disconnected devices
-        for udid in active_udids - current_devices:
+        for udid in active_udids:
+            if udid in current_devices:
+                continue
             logger.info("udid: %s quit, terminate related process", udid)
             process = self.active_monitors[udid]
             if process:
@@ -152,10 +167,10 @@ class DeviceManager:
                 process.terminate()
         self.running = False
 
-    def run_forever(self):
+    def run_forever(self, wifi: bool):
         while self.running:
             try:
-                self.update_devices()
+                self.update_devices(wifi)
             except Exception as e:
                 logger.exception("update_devices failed: %s", e)
             time.sleep(1)
@@ -169,7 +184,8 @@ class DeviceManager:
     default=None,
 )
 @click.option("--port", "port", help="listen port", default=5555)
-def tunneld(pmd3_path: str, port: int):
+@click.option("--wifi", is_flag=True, help="start-tunnel for network devices")
+def tunneld(pmd3_path: str, port: int, wifi: bool):
     """start server for iOS >= 17 auto start-tunnel, function like pymobiledevice3 remote tunneld"""
     if not os_utils.is_admin:
         logger.error("Please run as root(Mac) or administrator(Windows)")
@@ -194,7 +210,7 @@ def tunneld(pmd3_path: str, port: int):
         manager.pmd3_cmd = [pmd3_path]
 
     threading.Thread(
-        target=manager.run_forever, daemon=True, name="device_manager"
+        target=manager.run_forever, args=(wifi,), daemon=True, name="device_manager"
     ).start()
     try:
         uvicorn.run(app, host="0.0.0.0", port=port)

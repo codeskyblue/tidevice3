@@ -106,14 +106,16 @@ def connect_remote_service_discovery_service(udid: str, tunneld_url: str = None)
         if is_port_open("localhost", 49151):
             tunneld_url = "http://localhost:49151"
         else:
-            tunneld_url = "http://localhost:5555" # for backward compatibility
+            tunneld_url = "http://localhost:5555"  # for backward compatibility
 
     try:
         resp = requests.get(tunneld_url, timeout=DEFAULT_TIMEOUT)
         tunnels: Dict[str, Any] = resp.json()
-        ipv6_address = tunnels.get(udid)
+        ipv6_address = tunnels.get("usb_" + udid)
         if ipv6_address is None:
-            raise FatalError("tunneld not ready for device", udid)
+            ipv6_address = tunnels.get("wifi_" + udid)
+            if ipv6_address is None:
+                raise FatalError("tunneld not ready for device", udid)
         rsd = EnterableRemoteServiceDiscoveryService(ipv6_address)
         return rsd
     except requests.RequestException:
