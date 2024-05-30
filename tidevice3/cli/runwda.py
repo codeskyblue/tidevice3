@@ -37,8 +37,10 @@ def guess_wda_bundle_id(service_provider: LockdownClient) -> typing.Optional[str
 @click.option('--bundle-id', default=None, help="WebDriverAgent bundle id")
 @click.option("--src-port", default=8100, help="WebDriverAgent listen port")
 @click.option("--dst-port", default=8100, help="local listen port")
+@click.option("--mjpeg-src-port", default=9100, help="MJPEG listen port")
+@click.option("--mjpeg-dst-port", default=9100, help="MJPEG local listen port")
 @pass_rsd
-def cli_runwda(service_provider: LockdownClient, bundle_id: str, src_port: int, dst_port: int):
+def cli_runwda(service_provider: LockdownClient, bundle_id: str, src_port: int, dst_port: int, mjpeg_src_port: int, mjpeg_dst_port: int):
     """run WebDriverAgent"""
     if not bundle_id:
         bundle_id = guess_wda_bundle_id(service_provider)
@@ -49,16 +51,22 @@ def cli_runwda(service_provider: LockdownClient, bundle_id: str, src_port: int, 
         logger.info("forwarder started, listen on %s", dst_port)
         forwarder = UsbmuxTcpForwarder(service_provider.udid, dst_port, src_port)
         forwarder.start()
+
+    def mjpeg_forwarder():
+        logger.info("MJPEG forwarder started, listening on :%s", mjpeg_dst_port)
+        forwarder = UsbmuxTcpForwarder(service_provider.udid, mjpeg_dst_port, mjpeg_src_port)
+        forwarder.start()
     
     def xcuitest():
-        XCUITestService(service_provider).run(bundle_id)
+        XCUITestService(service_provider).run(bundle_id, {"MJPEG_SERVER_PORT": mjpeg_src_port, "USE_PORT": src_port})
 
+    thread0 = threading.Thread(target=mjpeg_forwarder, daemon=True)
     thread1 = threading.Thread(target=tcp_forwarder, daemon=True)
     thread2 = threading.Thread(target=xcuitest, daemon=True)
+    thread0.start()
     thread1.start()
     thread2.start()
 
-    while thread1.is_alive() and thread2.is_alive():
+    while thread0.is_alive() and thread1.is_alive() and thread2.is_alive():
         time.sleep(0.1)
     logger.info("Program exited")
-    
