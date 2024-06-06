@@ -34,24 +34,24 @@ class Address(NamedTuple):
     port: int
 
 
-def get_connected_devices() -> list[str]:
+class DeviceMiniInfo(NamedTuple):
+    Udid: str
+    ConnectionType: str
+    ProductVersion: str
+
+
+def get_connected_devices(wifi: bool) -> List[DeviceMiniInfo]:
     """return list of udid"""
     try:
-        devices = list_devices(usb=True, network=False)
+        usb_devices = list_devices(usb=True, network=False)
+        devices = [DeviceMiniInfo(d.Identifier, d.ConnectionType, d.ProductVersion) for d in usb_devices if Version(d.ProductVersion) >= Version("17")]
+        if wifi:
+            wifi_devices = list_devices(usb=False, network=True)
+            devices.extend([DeviceMiniInfo(d.Identifier, d.ConnectionType, d.ProductVersion) for d in wifi_devices if Version(d.ProductVersion) >= Version("17")])
     except MuxException as e:
         logger.error("list_devices failed: %s", e)
         return []
-    return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17")]
-
-
-def get_need_lockdown_devices() -> list[str]:
-    """return list of udid"""
-    try:
-        devices = list_devices(usb=True, network=False)
-    except MuxException as e:
-        logger.error("list_devices failed: %s", e)
-        return []
-    return [d.Identifier for d in devices if Version(d.ProductVersion) >= Version("17.4")]
+    return devices
 
 
 def guess_pymobiledevice3_cmd() -> List[str]:
@@ -66,7 +66,7 @@ class TunnelError(Exception):
 
 
 @threadsafe_function
-def start_tunnel(pmd3_path: List[str], udid: str) -> Tuple[Address, subprocess.Popen]:
+def start_tunnel(pmd3_path: List[str], device: DeviceMiniInfo) -> Tuple[Address, subprocess.Popen]:
     """
     Start program, should be killed when the main program quit
 
@@ -74,11 +74,14 @@ def start_tunnel(pmd3_path: List[str], udid: str) -> Tuple[Address, subprocess.P
         TunnelError
     """
     # cmd = ["bash", "-c", "echo ::1 1234; sleep 10001"]
-    log_prefix = f"[{udid}]"
+    log_prefix = f"[{device.Udid}]"
     start_tunnel_cmd = "remote"
-    if udid in get_need_lockdown_devices():
-        start_tunnel_cmd = "lockdown"
-    cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {udid}".split()
+    if device.ConnectionType == "Network" and Version(device.ProductVersion) < Version("17.4"):
+        cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {device.Udid} -t wifi".split()
+    else:
+        if Version(device.ProductVersion) >= Version("17.4"):
+            start_tunnel_cmd = "lockdown"
+        cmdargs = pmd3_path + f"{start_tunnel_cmd} start-tunnel --script-mode --udid {device.Udid}".split()
     logger.info("%s cmd: %s", log_prefix, shlex.join(cmdargs))
     process = subprocess.Popen(
         cmdargs, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE
@@ -100,23 +103,28 @@ class DeviceManager:
         self.addresses: Mapping[str, Address] = {}
         self.pmd3_cmd = ["pymobiledevice3"]
 
-    def update_devices(self):
-        current_devices = set(get_connected_devices())
-        active_udids = set(self.active_monitors.keys())
+    def update_devices(self, wifi: bool):
+        current_devices = get_connected_devices(wifi)
+        current_udids = [d.Udid for d in current_devices]
+        active_udids = self.active_monitors.keys()
 
         # Start monitors for new devices
-        for udid in current_devices - active_udids:
-            self.active_monitors[udid] = None
+        for device in current_devices:
+            if device.Udid in active_udids:
+                continue
+            self.active_monitors[device.Udid] = None
             try:
-                threading.Thread(name=f"{udid} keeper",
+                threading.Thread(name=f"{device.Udid} keeper",
                                  target=self._start_tunnel_keeper,
-                                 args=(udid,),
+                                 args=(device,),
                                  daemon=True).start()
             except Exception as e:
-                logger.error("udid: %s start-tunnel failed: %s", udid, e)
+                logger.error("udid: %s start-tunnel failed: %s", device, e)
 
         # Stop monitors for disconnected devices
-        for udid in active_udids - current_devices:
+        for udid in active_udids:
+            if udid in current_udids:
+                continue
             logger.info("udid: %s quit, terminate related process", udid)
             process = self.active_monitors[udid]
             if process:
@@ -124,23 +132,23 @@ class DeviceManager:
             self.active_monitors.pop(udid, None)
             self.addresses.pop(udid, None)
 
-    def _start_tunnel_keeper(self, udid: str):
-        while udid in self.active_monitors:
+    def _start_tunnel_keeper(self, device: DeviceMiniInfo):
+        while device.Udid in self.active_monitors:
             try:
-                addr, process = start_tunnel(self.pmd3_cmd, udid)
-                self.active_monitors[udid] = process
-                self.addresses[udid] = addr
-                self._wait_process_exit(process, udid)
+                addr, process = start_tunnel(self.pmd3_cmd, device)
+                self.active_monitors[device.Udid] = process
+                self.addresses[device.Udid] = addr
+                self._wait_process_exit(process, device)
             except TunnelError:
-                logger.exception("udid: %s start-tunnel failed", udid)
+                logger.exception("udid: %s start-tunnel failed", device)
             time.sleep(3)
 
-    def _wait_process_exit(self, process: subprocess.Popen, udid: str):
+    def _wait_process_exit(self, process: subprocess.Popen, device: DeviceMiniInfo):
         while True:
             try:
                 process.wait(1.0)
-                self.addresses.pop(udid, None)
-                logger.warning("udid: %s process exit with code: %s", udid, process.returncode)
+                self.addresses.pop(device.Udid, None)
+                logger.warning("udid: %s process exit with code: %s", device, process.returncode)
                 break
             except subprocess.TimeoutExpired:
                 continue
@@ -152,10 +160,10 @@ class DeviceManager:
                 process.terminate()
         self.running = False
 
-    def run_forever(self):
+    def run_forever(self, wifi: bool):
         while self.running:
             try:
-                self.update_devices()
+                self.update_devices(wifi)
             except Exception as e:
                 logger.exception("update_devices failed: %s", e)
             time.sleep(1)
@@ -169,7 +177,8 @@ class DeviceManager:
     default=None,
 )
 @click.option("--port", "port", help="listen port", default=5555)
-def tunneld(pmd3_path: str, port: int):
+@click.option("--wifi", is_flag=True, help="start-tunnel for network devices")
+def tunneld(pmd3_path: str, port: int, wifi: bool):
     """start server for iOS >= 17 auto start-tunnel, function like pymobiledevice3 remote tunneld"""
     if not os_utils.is_admin:
         logger.error("Please run as root(Mac) or administrator(Windows)")
@@ -194,7 +203,7 @@ def tunneld(pmd3_path: str, port: int):
         manager.pmd3_cmd = [pmd3_path]
 
     threading.Thread(
-        target=manager.run_forever, daemon=True, name="device_manager"
+        target=manager.run_forever, args=(wifi,), daemon=True, name="device_manager"
     ).start()
     try:
         uvicorn.run(app, host="0.0.0.0", port=port)

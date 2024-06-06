@@ -106,7 +106,7 @@ def connect_remote_service_discovery_service(udid: str, tunneld_url: str = None)
         if is_port_open("localhost", 49151):
             tunneld_url = "http://localhost:49151"
         else:
-            tunneld_url = "http://localhost:5555" # for backward compatibility
+            tunneld_url = "http://localhost:5555"  # for backward compatibility
 
     try:
         resp = requests.get(tunneld_url, timeout=DEFAULT_TIMEOUT)
