@@ -77,13 +77,13 @@ def list_devices(
 
 DEFAULT_TIMEOUT = 60
 
-def connect_service_provider(udid: Optional[str], force_usbmux: bool = False, usbmux_address: Optional[str] = None) -> LockdownServiceProvider:
+def connect_service_provider(udid: Optional[str], force_usbmux: bool = False, usbmux_address: Optional[str] = None, tunneld_port: Optional[int] = 5555) -> LockdownServiceProvider:
     """Connect to device and return LockdownServiceProvider"""
     lockdown = create_using_usbmux(serial=udid, usbmux_address=usbmux_address)
     if force_usbmux:
         return lockdown
     if lockdown.product_version >= "17":
-        return connect_remote_service_discovery_service(lockdown.udid)
+        return connect_remote_service_discovery_service(lockdown.udid, "http://localhost:%d" % (tunneld_port))
     return lockdown
 
 

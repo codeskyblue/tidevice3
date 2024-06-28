@@ -21,7 +21,7 @@ from packaging.version import Version
 from pymobiledevice3.exceptions import MuxException
 from pymobiledevice3.osu.os_utils import OsUtils
 
-from tidevice3.cli.cli_common import cli
+from tidevice3.cli.cli_common import cli, CommandWithDeprecatedOptions, DeprecatedOption;
 from tidevice3.cli.list import list_devices
 from tidevice3.utils.common import threadsafe_function
 
@@ -161,15 +161,16 @@ class DeviceManager:
             time.sleep(1)
 
 
-@cli.command(context_settings={"show_default": True})
+@cli.command(context_settings={"show_default": True}, cls=CommandWithDeprecatedOptions)
 @click.option(
     "--pmd3-path",
     "pmd3_path",
     help="pymobiledevice3 cli path",
     default=None,
 )
-@click.option("--port", "port", help="listen port", default=5555)
-def tunneld(pmd3_path: str, port: int):
+@click.option("--port", "port", help="listen port", default=5555, cls=DeprecatedOption, deprecated=True, preferred="--tunneld-port")
+@click.pass_context
+def tunneld(ctx: click.Context, pmd3_path: str, port: int):
     """start server for iOS >= 17 auto start-tunnel, function like pymobiledevice3 remote tunneld"""
     if not os_utils.is_admin:
         logger.error("Please run as root(Mac) or administrator(Windows)")
@@ -197,7 +198,8 @@ def tunneld(pmd3_path: str, port: int):
         target=manager.run_forever, daemon=True, name="device_manager"
     ).start()
     try:
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        tunneld_port = ctx.obj["tunneld_port"];
+        uvicorn.run(app, host="0.0.0.0", port=(tunneld_port if tunneld_port!=5555 else port))
     finally:
         logger.info("Shutting down...")
         manager.shutdown()
